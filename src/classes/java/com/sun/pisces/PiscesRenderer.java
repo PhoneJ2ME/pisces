@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * Copyright  1990-2006 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
@@ -22,8 +22,6 @@
  * Clara, CA 95054 or visit www.sun.com if you need additional 
  * information or have any questions. 
  */
- 
- 
 package com.sun.pisces;
 
 import com.sun.midp.main.Configuration;
@@ -374,6 +372,7 @@ public final class PiscesRenderer extends PathSink {
         if (this.fillerP == null) {
             fillFlattener.setOutput(rdr);
             
+            //@ debug
             String flatness = System.getProperty("filler.flatness");
             if (flatness != null) {
                 fillFlattener.setFlatness(Integer.parseInt(flatness));
@@ -920,8 +919,7 @@ public final class PiscesRenderer extends PathSink {
         // simply draw two opposing rect outlines separated
         // by linewidth
         if (dashArray == null) {
-            if ((joinStyle == Stroker.JOIN_MITER)
-                    && (miterLimit >= PiscesMath.SQRT_TWO)) {
+            if (joinStyle == Stroker.JOIN_MITER) {
                 int x0 = x + STROKE_X_BIAS;
                 int y0 = y + STROKE_Y_BIAS;
                 int x1 = x0 + w;
