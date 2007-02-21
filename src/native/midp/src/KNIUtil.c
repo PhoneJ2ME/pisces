@@ -26,39 +26,39 @@
 
 #include <KNIUtil.h>
 
-jboolean
-initializeFieldIds(jfieldID* dest,
-                   jclass classHandle, const FieldDesc* fields) {
-    jboolean retVal = KNI_TRUE;
+jboolean 
+initializeFieldIds(jfieldID* dest, 
+    jclass classHandle, const FieldDesc* fields) {
+  jboolean retVal = KNI_TRUE;
 
-    while (fields->name != NULL) {
-        *dest = KNI_GetFieldID(classHandle, fields->name, fields->signature);
-        if (*dest == NULL) {
-            retVal = KNI_FALSE;
-            break;
-        }
-        ++fields;
-        ++dest;
+  while (fields->name != NULL) {
+    *dest = KNI_GetFieldID(classHandle, fields->name, fields->signature);
+    if (*dest == NULL) {
+      retVal = KNI_FALSE;
+      break;
     }
-
-    return retVal;
+    ++fields;
+    ++dest;
+  }
+  
+  return retVal;
 }
 
-jboolean
+jboolean 
 initializeStaticFieldIds(jfieldID* dest,
-                         jclass classHandle, const FieldDesc* fields) {
-    jboolean retVal = KNI_TRUE;
+    jclass classHandle, const FieldDesc* fields) {
+  jboolean retVal = KNI_TRUE;
 
-    while (fields->name != NULL) {
-        *dest = KNI_GetStaticFieldID(classHandle, fields->name,
-                                     fields->signature);
-        if (*dest == NULL) {
-            retVal = KNI_FALSE;
-            break;
-        }
-        ++fields;
-        ++dest;
+  while (fields->name != NULL) {
+    *dest = KNI_GetStaticFieldID(classHandle, fields->name, 
+        fields->signature);
+    if (*dest == NULL) {
+      retVal = KNI_FALSE;
+      break;
     }
-
-    return retVal;
+    ++fields;
+    ++dest;
+  }
+  
+  return retVal;
 }

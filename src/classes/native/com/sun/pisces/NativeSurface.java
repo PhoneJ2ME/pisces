@@ -26,24 +26,104 @@
 
 package com.sun.pisces;
 
-public final class NativeSurface extends AbstractSurface {
-    public NativeSurface(int width, int height) {
-        this(TYPE_INT_ARGB, width, height);
-    }
+public final class NativeSurface implements Surface {
+    private class NativeSurfaceDestination implements SurfaceDestination {
+        public void drawSurface(Surface ps, int srcX, int srcY, 
+                int dstX, int dstY, int width, int height, float opacity) {
+            if (ps instanceof NativeSurface) {
+                drawSurfaceImpl((NativeSurface)ps, srcX, srcY, dstX, dstY, 
+                        width, height, opacity);
+                return;
+            }
 
-    public NativeSurface(int dataType, int width, int height) {
-        switch (dataType) {
-            case TYPE_INT_RGB:
-                break;
-            case TYPE_INT_ARGB:
-                break;
-            default:
-                throw new IllegalArgumentException("Data type not supported "
-                        + " for " + NativeSurface.class.getName());
+            int srcW = ps.getWidth();
+            int srcH = ps.getHeight();
+            int dstW = getWidth();
+            int dstH = getHeight();
+            
+            if (srcX < 0) {
+                dstX -= srcX;
+                width += srcX;
+                srcX = 0;
+            }
+            
+            if (srcY < 0) {
+                dstY -= srcY;
+                height += srcY;
+                srcY = 0;
+            }
+            
+            if (dstX < 0) {
+                srcX -= dstX;
+                width += dstX;
+                dstX = 0;
+            }
+            
+            if (dstY < 0) {
+                srcY -= dstY;
+                height += dstY;
+                dstY = 0;
+            }
+            
+            if ((srcX + width) > srcW) {
+                width = srcW - srcX;
+            }
+            
+            if ((srcY + height) > srcH) {
+                height = srcH - srcY;
+            }
+            
+            if ((dstX + width) > dstW) {
+                width = dstW - dstX;
+            }
+            
+            if ((dstY + height) > dstH) {
+                height = dstH - dstY;
+            }
+            
+            if ((width > 0) && (height > 0) && (opacity > 0)) {
+                int size = width * height;
+                int[] srcRGB = new int[size];
+
+                ps.getRGB(srcRGB, 0, width, srcX, srcY, width, height);
+                drawRGBImpl(srcRGB, 0, width, dstX, dstY, width, height, 
+                        opacity);
+            }
         }
     
-        initialize(dataType, width, height);
+        public void drawRGB(int[] argb, int offset, int scanLength, 
+                int x, int y, int width, int height, float opacity) {
+            drawRGBImpl(argb, offset, scanLength, x, y, width, height, opacity);
+        }
+    }
+    
+    private long nativePtr = 0L;
+    
+    public NativeSurface(int width, int height) {
+        initialize(width, height);
+    }
+    
+    public SurfaceDestination createSurfaceDestination() {
+        return new NativeSurfaceDestination();
     }
 
-    private native void initialize(int dataType, int width, int height);
+    public native int getWidth();
+    
+    public native int getHeight();
+    
+    public native void getRGB(int[] argb, int offset, int scanLength, 
+            int x, int y, int width, int height);
+    
+    public native void setRGB(int[] argb, int offset, int scanLength, 
+            int x, int y, int width, int height);
+
+    private native void initialize(int width, int height);
+    
+    private native void drawSurfaceImpl(NativeSurface ps, int srcX, int srcY, 
+            int dstX, int dstY, int width, int height, float opacity);
+
+    private native void drawRGBImpl(int[] argb, int offset, int scanLength, 
+            int x, int y, int width, int height, float opacity);
+
+    private native void finalize();
 }
