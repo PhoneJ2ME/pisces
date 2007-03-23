@@ -699,7 +699,6 @@ renderer_setTexture(Renderer* rdr, jint* data, jint width, jint height,
 
     setPaintMode(rdr, PAINT_TEXTURE);
 
-    my_free(rdr->_texture_intData);
     rdr->_texture_intData = data;
     rdr->_texture_imageWidth = width;
     rdr->_texture_imageHeight = height;
