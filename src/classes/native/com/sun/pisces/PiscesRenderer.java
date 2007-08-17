@@ -39,7 +39,7 @@ public final class PiscesRenderer extends PathSink
     public static final int ARC_PIE = 2;
     
     long nativePtr = 0L;
-    protected AbstractSurface surface;
+    final AbstractSurface surface;
 
     private final NativeFinalizer finalizer;
         

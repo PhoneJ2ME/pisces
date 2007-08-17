@@ -30,7 +30,6 @@
 #include <PiscesSysutils.h>
 
 #include <PiscesSurface.inl>
-#include <PiscesSurfaceAdvanced.inl>
 
 #define SURFACE_NATIVE_PTR 0
 #define SURFACE_LAST SURFACE_NATIVE_PTR
