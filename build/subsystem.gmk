@@ -219,7 +219,7 @@ endif
                 PiscesSysutils.c \
                 JAbstractSurface.c \
                 JNativeFinalizer.c \
-		            JPiscesFinalizer.c \
+                JPiscesFinalizer.c \
                 JPiscesRenderer.c \
                 JTransform.c \
                 KNIUtil.c \
