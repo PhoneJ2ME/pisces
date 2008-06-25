@@ -35,6 +35,7 @@
 #define MAX_ALPHA 256
 #define HALF_ALPHA (MAX_ALPHA >> 1)
 #define ALPHA_SHIFT 8
+#define HALF_1_SHIFT_23 (jint)(1L << 23) 
 
 static INLINE void blendSrcOver888(jint *intData, jint aval,
                             jint cred, jint cgreen, jint cblue);
@@ -2340,9 +2341,9 @@ blendSrcOver8888(jint *intData,
         jlong fa = (256 - aval) * dalpha * recip;
         jlong fb = 255 * aval * recip;
         jint oalpha = denom >> 8;
-        jint ored = (jint)((fa * dred + fb * sred) >> 24);
-        jint ogreen = (jint)((fa * dgreen + fb * sgreen) >> 24);
-        jint oblue = (jint)((fa * dblue + fb * sblue) >> 24);
+        jint ored = (jint)((fa * dred + fb * sred + HALF_1_SHIFT_23) >> 24);
+        jint ogreen = (jint)((fa * dgreen + fb * sgreen + HALF_1_SHIFT_23) >> 24);
+        jint oblue = (jint)((fa * dblue + fb * sblue + HALF_1_SHIFT_23) >> 24);
 
         ival = (oalpha << 24) | (ored << 16) | (ogreen << 8) | oblue;
         *intData = ival;
@@ -2398,13 +2399,13 @@ blendSrcOver8888_pre(jint *intData,
     jint dblue = ival & 0xff;
     
     //premultiplied source components (we add 0.5 for presicion)
-    jint psred   = (sred * aval   + 127);
+    jint psred   = (sred * aval + 127);
     jint psgreen = (sgreen * aval + 127);
-    jint psblue  = (sblue * aval  + 127);
+    jint psblue  = (sblue * aval + 127);
     
     jint oneminusaval = (256 - aval);
     
-    jint oalpha = (256 * aval + dalpha * oneminusaval)  >> 8;
+    jint oalpha = (255 * aval + dalpha * oneminusaval)  >> 8;
     jint ored   = (psred   + oneminusaval * dred)     >> 8;
     jint ogreen = (psgreen  + oneminusaval * dgreen)   >> 8;
     jint oblue  = (psblue   + oneminusaval * dblue )   >> 8;
