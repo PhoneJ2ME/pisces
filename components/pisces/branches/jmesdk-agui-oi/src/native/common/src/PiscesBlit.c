@@ -164,14 +164,29 @@ fillRectSrcOver(Renderer* rdr,
 
         if (imageType == TYPE_INT_RGB || imageType == TYPE_INT_ARGB || 
             imageType == TYPE_INT_ARGB_PRE) {
-            for (j = 0; j < height; j++) {
-                int iidx = offset;
-                for (i = 0; i < width; i++) {
-                    intData[iidx] = intVal;
-                    iidx += imagePixelStride;
-                }
-                offset += imageScanlineStride;
+          if (width > 8 && height > 1) { 
+			int size = width * sizeof(jint);
+            jint* data = (jint *) malloc(size);
+            for (i = 0; i < width; i++) {
+              data[i] = intVal;
             }
+            for (j = 0; j < height; j++) {
+              memcpy((jint*)(intData+offset), data, size);
+              offset += imageScanlineStride;
+            }
+			if (data) {
+				free(data);
+			}
+          } else {
+            for (j = 0; j < height; j++) {
+              int iidx = offset;
+              for (i = 0; i < width; i++) {
+                intData[iidx] = intVal;
+                iidx += imagePixelStride;
+              }
+              offset += imageScanlineStride;
+            }
+          }
         } else if (imageType == TYPE_USHORT_565_RGB) {
             for (j = 0; j < height; j++) {
                 int iidx = offset;
@@ -2216,14 +2231,29 @@ clearRect8888(Renderer *rdr, jint x, jint y, jint w, jint h) {
     jint scanlineSkip = rdr->_imageScanlineStride - w * pixelStride;
     jint* intData = (jint*)rdr->_data + rdr->_imageOffset +
                     y * rdr->_imageScanlineStride + x * pixelStride;
-
-    for (; h > 0; --h) {
+    if (w > 8 && h > 1) {
+	  jint size = w * sizeof(jint);		
+      jint * data = (jint *) malloc(size);
+      jint i;
+      for (i = 0; i < w; ++i) {
+        data[i] = cval;
+      }
+      for (; h > 0; --h) {
+        memcpy(intData, data, size);
+        intData += rdr->_imageScanlineStride;
+      }
+	  if (data) {
+		free(data);
+	  }
+    } else {
+      for (; h > 0; --h) {
         jint w2;
         for (w2 = w; w2 > 0; --w2) {
-            *intData = cval;
-            intData += pixelStride;
+          *intData = cval;
+          intData += pixelStride;
         }
         intData += scanlineSkip;
+      }
     }
 }
 
@@ -2237,7 +2267,6 @@ clearRect5658(Renderer *rdr, jint x, jint y, jint w, jint h) {
                                  y * rdr->_imageScanlineStride + x * pixelStride;
     jbyte *alphaData = (jbyte *) rdr->_alphaData + rdr->_imageOffset +
                                  y * rdr->_imageScanlineStride + x * pixelStride;                                 
-
     for (; h > 0; --h) {
         jint w2;
         for (w2 = w; w2 > 0; --w2) {
@@ -2569,10 +2598,11 @@ blendLine(void *data, jbyte *alphaBuffer, jint imageType, jint offset, jint stri
             offset += stride;
         }    
     } else if (imageType == TYPE_USHORT_5658) {
-        shortData = (unsigned short *)data;
+        shortData = (jshort *)data;
         alphaData = alphaBuffer;
         for (i = 0; i < length; i++) {
-            blendSrcOver5658(&shortData[offset],&alphaData[offset], alpha, red, 
+            blendSrcOver5658((unsigned short *) &shortData[offset],
+                             &alphaData[offset], alpha, red, 
                              green, blue);
             offset += stride;
         }
