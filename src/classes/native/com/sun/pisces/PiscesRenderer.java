@@ -32,8 +32,6 @@ public final class PiscesRenderer extends PathSink
         PiscesLibrary.load();
     }
 
-    private static boolean messageShown = false;
-
     public static final int ARC_OPEN = 0;
     public static final int ARC_CHORD = 1;
     public static final int ARC_PIE = 2;
@@ -93,14 +91,9 @@ public final class PiscesRenderer extends PathSink
     }
 
     public PiscesRenderer(AbstractSurface surface) {
-        if (!messageShown) {
-            System.out.println("Using Pisces Renderer (native version)");
-        }
-
         this.finalizer = NativeFinalizer.createInstance(this);
         this.surface = surface;
         initialize();
-        messageShown = true;
     }
 
     private static native void staticInitialize(int strokeXBias, 
