@@ -1,7 +1,7 @@
 /*
  *    
  *
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This program is free software; you can redistribute it and/or
@@ -27,25 +27,12 @@
 #include <kni.h>
 #include <PiscesLibrary.h>
 
-static jint counter = 0;
-
 /*
  * private native void finalize();
  */
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesFinalizer_finalize()
+KNIDECL(com_sun_pisces_PiscesFinalizer_finalize)
 {
-    if (--counter == 0) {
-        pisces_moduleFinalize();
-    }
-    KNI_ReturnVoid();
-}
-
-KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesFinalizer_initialize()
-{
-    if (++counter == 1) {
-        pisces_moduleInitialize();
-    }
+    pisces_moduleFinalize();
     KNI_ReturnVoid();
 }

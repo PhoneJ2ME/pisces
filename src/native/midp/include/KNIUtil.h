@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -36,10 +36,10 @@ typedef struct _FieldDesc {
 }
 FieldDesc;
 
-jboolean initializeFieldIds(jfieldID* dest,
+jboolean initializeFieldIds(CVMExecEnv* _ee, jfieldID* dest,
                             jclass classHandle, const FieldDesc* fields);
 
-jboolean initializeStaticFieldIds(jfieldID* dest,
+jboolean initializeStaticFieldIds(CVMExecEnv* _ee, jfieldID* dest,
                                   jclass classHandle, const FieldDesc* fields);
 
 #endif

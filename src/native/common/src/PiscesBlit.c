@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -35,7 +35,6 @@
 #define MAX_ALPHA 256
 #define HALF_ALPHA (MAX_ALPHA >> 1)
 #define ALPHA_SHIFT 8
-#define HALF_1_SHIFT_23 (jint)(1L << 23) 
 
 static INLINE void blendSrcOver888(jint *intData, jint aval,
                             jint cred, jint cgreen, jint cblue);
@@ -45,7 +44,7 @@ static INLINE void blendSrcOver5658(unsigned short *shortData, jbyte *alphaData,
                                  jint aval, jint sred, jint sgreen, jint sblue);                             
 static INLINE void blendSrcOver8888_pre(jint *intData, jint aval, jint sred, 
                                  jint sgreen, jint sblue);                                                              
-static INLINE void blendSrcOver565(jshort *shortData, jint pix);
+static INLINE void blendSrcOver565(unsigned short *shortData, jint pix);
 
 static INLINE void blendSrcOver8(jbyte *byteData, jint aval, jint cgray);
 
@@ -164,29 +163,14 @@ fillRectSrcOver(Renderer* rdr,
 
         if (imageType == TYPE_INT_RGB || imageType == TYPE_INT_ARGB || 
             imageType == TYPE_INT_ARGB_PRE) {
-          if (width > 8 && height > 1) { 
-			int size = width * sizeof(jint);
-            jint* data = (jint *) PISCESmalloc(size);
-            for (i = 0; i < width; i++) {
-              data[i] = intVal;
-            }
             for (j = 0; j < height; j++) {
-              memcpy((jint*)(intData+offset), data, size);
-              offset += imageScanlineStride;
+                int iidx = offset;
+                for (i = 0; i < width; i++) {
+                    intData[iidx] = intVal;
+                    iidx += imagePixelStride;
+                }
+                offset += imageScanlineStride;
             }
-			if (data) {
-				PISCESfree(data);
-			}
-          } else {
-            for (j = 0; j < height; j++) {
-              int iidx = offset;
-              for (i = 0; i < width; i++) {
-                intData[iidx] = intVal;
-                iidx += imagePixelStride;
-              }
-              offset += imageScanlineStride;
-            }
-          }
         } else if (imageType == TYPE_USHORT_565_RGB) {
             for (j = 0; j < height; j++) {
                 int iidx = offset;
@@ -339,29 +323,25 @@ fillRectSrcOver(Renderer* rdr,
         
     case TYPE_USHORT_565_RGB:
         if (alphaUL > 0) {
-            blendSrcOver565(
-                    (jshort*)&shortData[imageOffset 
+            blendSrcOver565(&shortData[imageOffset 
                                         + (iy0 - 1) * imageScanlineStride
                                         + (ix0 - 1) * imagePixelStride],
                     (alphaUL << 24) | intVal);
         }
         if (alphaUR > 0) {
-            blendSrcOver565(
-                    (jshort*)&shortData[imageOffset 
+            blendSrcOver565(&shortData[imageOffset 
                                         + (iy0 - 1) * imageScanlineStride
                                         + (ix1 + 1) * imagePixelStride],
                     (alphaUR<<24) | intVal);
         }
         if (alphaLL > 0) {
-            blendSrcOver565(
-                    (jshort*)&shortData[imageOffset 
+            blendSrcOver565(&shortData[imageOffset 
                                         + (iy1 + 1) * imageScanlineStride
                                         + (ix0 - 1) * imagePixelStride],
                     (alphaLL << 24) | intVal);
         }
         if (alphaLR > 0) {
-            blendSrcOver565(
-                    (jshort*)&shortData[imageOffset 
+            blendSrcOver565(&shortData[imageOffset 
                                         + (iy1 + 1) * imageScanlineStride
                                         + (ix1 + 1) * imagePixelStride],
                     (alphaLR << 24) | intVal);
@@ -651,7 +631,7 @@ blitSrc5658(Renderer *rdr, jint height) {
         while (a < am) {
             aval = alphaMap[*a & 0xff];
             if (aval == MAX_ALPHA) {
-                shortData[iidx] = cval;
+                shortData[iidx] = (unsigned short) cval;
                 alphaData[iidx] = 0xff;
             } else if (aval > 0) {
                 blendSrc5658(&shortData[iidx], &alphaData[iidx], aval, 
@@ -672,9 +652,9 @@ blitSrc565(Renderer *rdr, jint height) {
     jint j;
     jint minX, maxX, w;
     jint aidx, iidx, aval;
-    jshort cval;
+    unsigned short cval;
 
-    jshort *shortData = (jshort *)rdr->_data;
+    unsigned short *shortData = (unsigned short *)rdr->_data;
     jint imageOffset = rdr->_currImageOffset;
     jint imageScanlineStride = rdr->_imageScanlineStride;
     jint imagePixelStride = rdr->_imagePixelStride;
@@ -692,7 +672,7 @@ blitSrc565(Renderer *rdr, jint height) {
 
     jbyte *a, *am;
 
-    cval = (jshort)((cred5 << 11) | (cgreen6 << 5) | (cblue5));
+    cval = (unsigned short)((cred5 << 11) | (cgreen6 << 5) | (cblue5));
 
     for (j = 0; j < height; j++) {
         minX = minTouched[j];
@@ -922,7 +902,7 @@ blitPTSrc5658(Renderer *rdr, jint height) {
     jint *minTouched = rdr->_minTouched;
     jint *maxTouched = rdr->_maxTouched;
     jint aaAlphaShift = rdr->_AA_ALPHA_SHIFT;
-    jint calpha;
+    jint cred5, cgreen6, cblue5, calpha;
     
     jbyte *a, *am;
     jint *alphaMap = rdr->_paintAlphaMap;
@@ -951,20 +931,25 @@ blitPTSrc5658(Renderer *rdr, jint height) {
 
             cval = paint[aidx];
             aa = alphaMap[(cval >> 24) & 0xff];
+            
+            cred5 = _Pisces_convert8To5[(cval >> 16) & 0xff];
+            cgreen6 = _Pisces_convert8To6[(cval >> 8) & 0xff];
+            cblue5 = _Pisces_convert8To5[cval & 0xff];
             calpha = (cval >> 24) && 0xff;
-            cval = CONVERT_888_TO_565(cval);
+
+            cval = ((cred5 << 11) | (cgreen6 << 5) | cblue5);
 
             /* Scale combined alpha into [0, MAX_ALPHA] */
             aval = (aa * (*a & 0xff) * MAX_ALPHA + denom2) / denom;
             if (aval == MAX_ALPHA) {
-                shortData[iidx] = cval;
-                alphaData[iidx] = calpha;
+                shortData[iidx] = (unsigned short) cval;
+                alphaData[iidx] = (jbyte) calpha;
             } else if (aval > 0) {
                 blendSrc5658(&shortData[iidx], &alphaData[iidx], aval,
                              256 - (*a << aaAlphaShift), 
-                             (cval >> 11) & 0x1f, // cred5
-                             (cval >> 5) & 0x3f, // cgreen6
-                             cval & 0x1f); // cblue5
+                             cred5, 
+                             cgreen6, 
+                             cblue5);
             }
 
             ++a;
@@ -1062,7 +1047,7 @@ blitPTSrc565(Renderer *rdr, jint height) {
     jint minX, maxX, w;
     jint cval, aidx, iidx, aval;
 
-    jshort *shortData = (jshort *)rdr->_data;
+    unsigned short *shortData = (unsigned short *)rdr->_data;
     jint imageOffset = rdr->_currImageOffset;
     jint imageScanlineStride = rdr->_imageScanlineStride;
     jint imagePixelStride = rdr->_imagePixelStride;
@@ -1092,14 +1077,21 @@ blitPTSrc565(Renderer *rdr, jint height) {
         a = alpha + aidx;
         am = a + w;
         while (a < am) {
+            jint cred5, cgreen6, cblue5;
+
             assert(aidx >= 0);
             assert(aidx < rdr->_paint_length / 4);
 
-            cval = CONVERT_888_TO_565(paint[aidx]);
+            cval = paint[aidx];
+            cred5 = _Pisces_convert8To5[(cval >> 16) & 0xff];
+            cgreen6 = _Pisces_convert8To6[(cval >> 8) & 0xff];
+            cblue5 = _Pisces_convert8To5[cval & 0xff];
 
-            aval = *a << aaAlphaShift;
+            cval = ((cred5 << 11) | (cgreen6 << 5) | cblue5);
+
+            aval = *a++ << aaAlphaShift;
             if (aval == MAX_ALPHA) {
-                shortData[iidx] = (jshort)cval;
+                shortData[iidx] = (unsigned short)cval;
             } else if (aval > 0) {
                 blendSrcOver565(&shortData[iidx], 
                                 (aval << 24) | (cval & 0xffff));
@@ -1329,8 +1321,8 @@ blitSrcOver5658(Renderer *rdr, jint height) {
         while (a < am) {
             aval = alphaMap[*a++ & 0xff];
             if (aval == MAX_ALPHA) {
-                shortData[iidx] = cval;
-                alphaData[iidx] = rdr->_oalpha;
+                shortData[iidx] = (unsigned short) cval;
+                alphaData[iidx] = (jbyte) rdr->_oalpha;
             } else if (aval > 0) {
                 blendSrcOver5658(&shortData[iidx], &alphaData[iidx],
                                  aval, cred, cgreen, cblue);
@@ -1404,9 +1396,9 @@ blitSrcOver565(Renderer *rdr, jint height) {
     jint j;
     jint minX, maxX, w;
     jint aidx, iidx, aval;
-    jshort cval;
+    unsigned short cval;
 
-    jshort *shortData = (jshort *)rdr->_data;
+    unsigned short *shortData = (unsigned short *)rdr->_data;
     jint imageOffset = rdr->_currImageOffset;
     jint imageScanlineStride = rdr->_imageScanlineStride;
     jint imagePixelStride = rdr->_imagePixelStride;
@@ -1423,7 +1415,7 @@ blitSrcOver565(Renderer *rdr, jint height) {
 
     jbyte *a, *am;
 	
-    cval = (jshort)((cred5 << 11) | (cgreen6 << 5) | (cblue5));
+    cval = (unsigned short)((cred5 << 11) | (cgreen6 << 5) | (cblue5));
 
     for (j = 0; j < height; j++) {
         minX = minTouched[j];
@@ -1818,304 +1810,6 @@ genTexturePaint(Renderer *rdr, jint height) {
     }
 }
 
-
-void
-genTexturePaint565NoAlpha(Renderer *rdr, jint height) {
-    jint j;
-    jint minX, maxX, w;
-    jint cval, pidx;
-
-    jint *paint = rdr->_paint;
-    jint paintOffset = 0;
-    jint paintStride = rdr->_alphaWidth;
-    jint width = rdr->_alphaWidth;
-    jint *minTouched = rdr->_minTouched;
-    jint *maxTouched = rdr->_maxTouched;
-
-    jint *a, *am;
-
-    jint x, y;
-    jlong ltx, lty;
-    jbyte* txtData = rdr->_texture_byteData;
-
-    y = rdr->_currY;
-    for (j = 0; j < height; j++, y++) {
-        minX = minTouched[j];
-        maxX = maxTouched[j];
-        pidx = paintOffset + minX;
-
-        w = (maxX >= minX) ? (maxX - minX + 1) : 0;
-        if ((w > 0) && (w + minX > width)) {
-            w = width - minX;
-        }
-
-        x = rdr->_currX + minX;
-
-        ltx = x * rdr->_texture_m00 + y * rdr->_texture_m01 + rdr->_texture_m02;
-        lty = x * rdr->_texture_m10 + y * rdr->_texture_m11 + rdr->_texture_m12;
-
-        a = paint + pidx;
-        am = a + w;
-        while (a < am) {
-            jint tx = (jint)(ltx >> 16);
-            jint ty = (jint)(lty >> 16);
-
-            jint hfrac = (jint)(ltx & 0xffff);
-            jint vfrac = (jint)(lty & 0xffff);
-
-            jboolean inBounds = XNI_TRUE;
-
-            if ((tx & rdr->_texture_wmask) != 0) {
-                if (tx < -1 || tx >= rdr->_texture_imageWidth) {
-                    if (rdr->_texture_repeat) {
-                        ltx = lmod(ltx, rdr->_texture_imageWidth << 16);
-                        tx = (jint)(ltx >> 16);
-                    } else {
-                        inBounds = XNI_FALSE;
-                    }
-                }
-            }
-            if ((ty & rdr->_texture_hmask) != 0) {
-                if (ty < -1 || ty >= rdr->_texture_imageHeight) {
-                    if (rdr->_texture_repeat) {
-                        lty = lmod(lty, rdr->_texture_imageHeight << 16);
-                        ty = (jint)(lty >> 16);
-                    } else {
-                        inBounds = XNI_FALSE;
-                    }
-                }
-            }
-
-            if (inBounds) {
-                jint sidx = (ty + 1) * rdr->_texture_stride + tx + 1;
-                jint sidx_2 = sidx << 1;
-                jint p00 = CONVERT_565_TO_888((((txtData[sidx_2] & 0xff)) | ((txtData[sidx_2 + 1] & 0xff) << 8) )) | 0xff000000;
-                
-                jint aa;
-                if (rdr->_texture_interpolate) {
-                    jint sidx2 = sidx + rdr->_texture_stride;
-                    jint sidx1_2 = (sidx + 1) << 1;
-                    jint sidx2_2 = sidx2 << 1;
-                    jint sidx2_22 = (sidx2+1) << 1;
-                    
-                    jint p01 = CONVERT_565_TO_888(((txtData[sidx1_2] & 0xff)|(txtData[sidx1_2 + 1] & 0xff) << 8)) | 0xff000000;
-                    jint p10 = CONVERT_565_TO_888(((txtData[sidx2_2] & 0xff) | (txtData[sidx2_2 + 1] & 0xff) << 8 )) | 0xff000000;
-                    jint p11 = CONVERT_565_TO_888(((txtData[sidx2_22] & 0xff)| (txtData[sidx2_22 + 1] & 0xff) << 8)) | 0xff000000;
-
-                    jint a00 = (p00 >> 24) & 0xff;
-                    jint r00 = (p00 >> 16) & 0xff;
-                    jint g00 = (p00 >> 8)  & 0xff;
-                    jint b00 =  p00        & 0xff;
-
-                    jint a01 = (p01 >> 24) & 0xff;
-                    jint r01 = (p01 >> 16) & 0xff;
-                    jint g01 = (p01 >> 8)  & 0xff;
-                    jint b01 =  p01        & 0xff;
-
-                    jint a0 = interp(a00, a01, hfrac);
-                    jint r0 = interp(r00, r01, hfrac);
-                    jint g0 = interp(g00, g01, hfrac);
-                    jint b0 = interp(b00, b01, hfrac);
-
-                    jint a10 = (p10 >> 24) & 0xff;
-                    jint r10 = (p10 >> 16) & 0xff;
-                    jint g10 = (p10 >> 8)  & 0xff;
-                    jint b10 =  p10        & 0xff;
-
-                    jint a11 = (p11 >> 24) & 0xff;
-                    jint r11 = (p11 >> 16) & 0xff;
-                    jint g11 = (p11 >> 8)  & 0xff;
-                    jint b11 =  p11        & 0xff;
-
-                    jint a1 = interp(a10, a11, hfrac);
-                    jint r1 = interp(r10, r11, hfrac);
-                    jint g1 = interp(g10, g11, hfrac);
-                    jint b1 = interp(b10, b11, hfrac);
-
-                    jint rr = interp(r0, r1, vfrac);
-                    jint gg = interp(g0, g1, vfrac);
-                    jint bb = interp(b0, b1, vfrac);
-
-                    aa = interp(a0, a1, vfrac);
-                    cval = (aa << 24) | (rr << 16) | (gg << 8) | bb;
-
-                    assert(pidx >= 0);
-                    assert(pidx < rdr->_paint_length / 4);
-
-                    paint[pidx] = cval;
-                } else {
-                    assert(pidx >= 0);
-                    assert(pidx < rdr->_paint_length / 4);
-
-                    paint[pidx] = p00;
-                }
-            } else {
-                assert(pidx >= 0);
-                assert(pidx < rdr->_paint_length / 4);
-
-                paint[pidx] = 0x00000000;
-            }
-
-            ++a;
-            ++pidx;
-
-            ltx += rdr->_texture_m00;
-            lty += rdr->_texture_m10;
-        }
-
-        paintOffset += paintStride;
-    }
-}
-
-void
-genTexturePaint565WithAlpha(Renderer *rdr, jint height) {
-    jint j;
-    jint minX, maxX, w;
-    jint cval, pidx;
-
-    jint *paint = rdr->_paint;
-    jint paintOffset = 0;
-    jint paintStride = rdr->_alphaWidth;
-    jint width = rdr->_alphaWidth;
-    jint *minTouched = rdr->_minTouched;
-    jint *maxTouched = rdr->_maxTouched;
-
-    jint *a, *am;
-
-    jint x, y;
-    jlong ltx, lty;
-    jbyte* txtData = rdr->_texture_byteData;
-    jbyte* alphaData = rdr->_texture_alphaData;
-
-    y = rdr->_currY;
-    for (j = 0; j < height; j++, y++) {
-        minX = minTouched[j];
-        maxX = maxTouched[j];
-        pidx = paintOffset + minX;
-
-        w = (maxX >= minX) ? (maxX - minX + 1) : 0;
-        if ((w > 0) && (w + minX > width)) {
-            w = width - minX;
-        }
-
-        x = rdr->_currX + minX;
-
-        ltx = x * rdr->_texture_m00 + y * rdr->_texture_m01 + rdr->_texture_m02;
-        lty = x * rdr->_texture_m10 + y * rdr->_texture_m11 + rdr->_texture_m12;
-
-        a = paint + pidx;
-        am = a + w;
-        while (a < am) {
-            jint tx = (jint)(ltx >> 16);
-            jint ty = (jint)(lty >> 16);
-
-            jint hfrac = (jint)(ltx & 0xffff);
-            jint vfrac = (jint)(lty & 0xffff);
-
-            jboolean inBounds = XNI_TRUE;
-
-            if ((tx & rdr->_texture_wmask) != 0) {
-                if (tx < -1 || tx >= rdr->_texture_imageWidth) {
-                    if (rdr->_texture_repeat) {
-                        ltx = lmod(ltx, rdr->_texture_imageWidth << 16);
-                        tx = (jint)(ltx >> 16);
-                    } else {
-                        inBounds = XNI_FALSE;
-                    }
-                }
-            }
-            if ((ty & rdr->_texture_hmask) != 0) {
-                if (ty < -1 || ty >= rdr->_texture_imageHeight) {
-                    if (rdr->_texture_repeat) {
-                        lty = lmod(lty, rdr->_texture_imageHeight << 16);
-                        ty = (jint)(lty >> 16);
-                    } else {
-                        inBounds = XNI_FALSE;
-                    }
-                }
-            }
-
-            if (inBounds) {
-                jint sidx = (ty + 1) * rdr->_texture_stride + tx + 1;
-                jint sidx_2 = sidx << 1;
-                jint p00 = CONVERT_565_TO_888((((txtData[sidx_2] & 0xff)) | ((txtData[sidx_2 + 1] & 0xff) << 8) )) | ((alphaData[sidx] & 0xff) << 24);
-                
-                jint aa;
-                if (rdr->_texture_interpolate) {
-                    jint sidx2 = sidx + rdr->_texture_stride;
-                    jint sidx1_2 = (sidx + 1) << 1;
-                    jint sidx2_2 = sidx2 << 1;
-                    jint sidx2_22 = (sidx2+1) << 1;
-                    
-                    jint p01 = CONVERT_565_TO_888(((txtData[sidx1_2] & 0xff)|(txtData[sidx1_2 + 1] & 0xff) << 8)) | ((alphaData[sidx + 1] & 0xff) << 24);
-                    jint p10 = CONVERT_565_TO_888(((txtData[sidx2_2] & 0xff) | (txtData[sidx2_2 + 1] & 0xff) << 8 )) | ((alphaData[sidx2] & 0xff) << 24);
-                    jint p11 = CONVERT_565_TO_888(((txtData[sidx2_22] & 0xff)| (txtData[sidx2_22 + 1] & 0xff) << 8)) | ((alphaData[sidx2 + 1] & 0xff) << 24);
-
-                    jint a00 = (p00 >> 24) & 0xff;
-                    jint r00 = (p00 >> 16) & 0xff;
-                    jint g00 = (p00 >> 8)  & 0xff;
-                    jint b00 =  p00        & 0xff;
-
-                    jint a01 = (p01 >> 24) & 0xff;
-                    jint r01 = (p01 >> 16) & 0xff;
-                    jint g01 = (p01 >> 8)  & 0xff;
-                    jint b01 =  p01        & 0xff;
-
-                    jint a0 = interp(a00, a01, hfrac);
-                    jint r0 = interp(r00, r01, hfrac);
-                    jint g0 = interp(g00, g01, hfrac);
-                    jint b0 = interp(b00, b01, hfrac);
-
-                    jint a10 = (p10 >> 24) & 0xff;
-                    jint r10 = (p10 >> 16) & 0xff;
-                    jint g10 = (p10 >> 8)  & 0xff;
-                    jint b10 =  p10        & 0xff;
-
-                    jint a11 = (p11 >> 24) & 0xff;
-                    jint r11 = (p11 >> 16) & 0xff;
-                    jint g11 = (p11 >> 8)  & 0xff;
-                    jint b11 =  p11        & 0xff;
-
-                    jint a1 = interp(a10, a11, hfrac);
-                    jint r1 = interp(r10, r11, hfrac);
-                    jint g1 = interp(g10, g11, hfrac);
-                    jint b1 = interp(b10, b11, hfrac);
-
-                    jint rr = interp(r0, r1, vfrac);
-                    jint gg = interp(g0, g1, vfrac);
-                    jint bb = interp(b0, b1, vfrac);
-
-                    aa = interp(a0, a1, vfrac);
-                    cval = (aa << 24) | (rr << 16) | (gg << 8) | bb;
-
-                    assert(pidx >= 0);
-                    assert(pidx < rdr->_paint_length / 4);
-
-                    paint[pidx] = cval;
-                } else {
-                    assert(pidx >= 0);
-                    assert(pidx < rdr->_paint_length / 4);
-
-                    paint[pidx] = p00;
-                }
-            } else {
-                assert(pidx >= 0);
-                assert(pidx < rdr->_paint_length / 4);
-
-                paint[pidx] = 0x00000000;
-            }
-
-            ++a;
-            ++pidx;
-
-            ltx += rdr->_texture_m00;
-            lty += rdr->_texture_m10;
-        }
-
-        paintOffset += paintStride;
-    }
-}
-
 void
 blitPTSrcOver888(Renderer *rdr, jint height) {
     jint j;
@@ -2261,7 +1955,7 @@ blitPTSrcOver5658(Renderer *rdr, jint height) {
     jint width = rdr->_alphaWidth;
     jint *minTouched = rdr->_minTouched;
     jint *maxTouched = rdr->_maxTouched;
-    jint calpha;
+    jint cred5, cgreen6, cblue5, calpha;
     
     jbyte *a, *am;
     jint *alphaMap = rdr->_paintAlphaMap;
@@ -2290,19 +1984,22 @@ blitPTSrcOver5658(Renderer *rdr, jint height) {
 
             cval = paint[aidx];
             aa = alphaMap[(cval >> 24) & 0xff];
+
+            cred5 = _Pisces_convert8To5[(cval >> 16) & 0xff];
+            cgreen6 = _Pisces_convert8To6[(cval >> 8) & 0xff];
+            cblue5 = _Pisces_convert8To5[cval & 0xff];
             calpha = (cval >> 24) && 0xff;
-            cval = CONVERT_888_TO_565(cval);
+
+            cval = ((cred5 << 11) | (cgreen6 << 5) | cblue5);
 
             /* Scale combined alpha into [0, MAX_ALPHA] */
             aval = (aa * (*a & 0xff) * MAX_ALPHA + denom2) / denom;
             if (aval == MAX_ALPHA) {
-                shortData[iidx] = cval;
-                alphaData[iidx] = calpha;
+                shortData[iidx] = (unsigned short) cval;
+                alphaData[iidx] = (jbyte) calpha;
             } else if (aval > 0) {
                 blendSrcOver5658(&shortData[iidx], &alphaData[iidx], aval, 
-                    (cval >> 11) & 0x1f, // cred5
-                    (cval >> 5) & 0x3f, // cgreen6
-                    cval & 0x1f); // cblue5
+                                 cred5, cgreen6, cblue5);
             }
 
             ++a;
@@ -2394,7 +2091,7 @@ blitPTSrcOver565(Renderer *rdr, jint height) {
     jint minX, maxX, w;
     jint cval, aidx, iidx, aval, aa;
 
-    jshort *shortData = (jshort *)rdr->_data;
+    unsigned short *shortData = (unsigned short *)rdr->_data;
     jint imageOffset = rdr->_currImageOffset;
     jint imageScanlineStride = rdr->_imageScanlineStride;
     jint imagePixelStride = rdr->_imagePixelStride;
@@ -2427,17 +2124,23 @@ blitPTSrcOver565(Renderer *rdr, jint height) {
         a = alpha + aidx;
         am = a + w;
         while (a < am) {
+            jint cred5, cgreen6, cblue5;
+
             assert(aidx >= 0);
             assert(aidx < rdr->_paint_length / 4);
 
             cval = paint[aidx];
             aa = alphaMap[(cval >> 24) & 0xff];
-            cval = CONVERT_888_TO_565(cval);
+            cred5 = _Pisces_convert8To5[(cval >> 16) & 0xff];
+            cgreen6 = _Pisces_convert8To6[(cval >> 8) & 0xff];
+            cblue5 = _Pisces_convert8To5[cval & 0xff];
+
+            cval = ((cred5 << 11) | (cgreen6 << 5) | cblue5);
 
             /* Scale combined alpha into [0, MAX_ALPHA] */
             aval = (aa * (*a & 0xff) * MAX_ALPHA + denom2) / denom;
             if (aval == MAX_ALPHA) {
-                shortData[iidx] = (jshort)cval;
+                shortData[iidx] = (unsigned short)cval;
             } else if (aval > 0) {
                 blendSrcOver565(&shortData[iidx], 
                                 (aval << 24) | (cval & 0xffff));
@@ -2529,42 +2232,28 @@ clearRect8888(Renderer *rdr, jint x, jint y, jint w, jint h) {
     jint scanlineSkip = rdr->_imageScanlineStride - w * pixelStride;
     jint* intData = (jint*)rdr->_data + rdr->_imageOffset +
                     y * rdr->_imageScanlineStride + x * pixelStride;
-    if (w > 8 && h > 1) {
-	  jint size = w * sizeof(jint);		
-      jint * data = (jint *) PISCESmalloc(size);
-      jint i;
-      for (i = 0; i < w; ++i) {
-        data[i] = cval;
-      }
-      for (; h > 0; --h) {
-        memcpy(intData, data, size);
-        intData += rdr->_imageScanlineStride;
-      }
-	  if (data) {
-		   PISCESfree(data);
-	  }
-    } else {
-      for (; h > 0; --h) {
+
+    for (; h > 0; --h) {
         jint w2;
         for (w2 = w; w2 > 0; --w2) {
-          *intData = cval;
-          intData += pixelStride;
+            *intData = cval;
+            intData += pixelStride;
         }
         intData += scanlineSkip;
-      }
     }
 }
 
 void
 clearRect5658(Renderer *rdr, jint x, jint y, jint w, jint h) {
-    unsigned short cval = (rdr->_cred << 11) | (rdr->_cgreen << 5) | rdr->_cblue;
-    jbyte calpha = rdr->_calpha; 
+    unsigned short cval = (unsigned short)((rdr->_cred << 11) | (rdr->_cgreen << 5) | rdr->_cblue);
+    jbyte calpha = (jbyte) rdr->_calpha; 
     jint pixelStride = rdr->_imagePixelStride;
     jint scanlineSkip = rdr->_imageScanlineStride - w * pixelStride;
     unsigned short* shortData = (unsigned short*)rdr->_data + rdr->_imageOffset +
                                  y * rdr->_imageScanlineStride + x * pixelStride;
     jbyte *alphaData = (jbyte *) rdr->_alphaData + rdr->_imageOffset +
                                  y * rdr->_imageScanlineStride + x * pixelStride;                                 
+
     for (; h > 0; --h) {
         jint w2;
         for (w2 = w; w2 > 0; --w2) {
@@ -2580,11 +2269,12 @@ clearRect5658(Renderer *rdr, jint x, jint y, jint w, jint h) {
 
 void
 clearRect565(Renderer *rdr, jint x, jint y, jint w, jint h) {
-    jshort cval = (jshort) CONVERT_888_TO_565_VALS(rdr->_cred, rdr->_cgreen, rdr->_cblue);
-
+    unsigned short cval = (unsigned short)((_Pisces_convert8To5[rdr->_cred] << 11) |
+                           (_Pisces_convert8To6[rdr->_cgreen] << 5) |
+                           _Pisces_convert8To5[rdr->_cblue]);
     jint pixelStride = rdr->_imagePixelStride;
     jint scanlineSkip = rdr->_imageScanlineStride - w * pixelStride;
-    jshort* shortData = (jshort*)rdr->_data + rdr->_imageOffset +
+    unsigned short* shortData = (unsigned short*)rdr->_data + rdr->_imageOffset +
                         y * rdr->_imageScanlineStride + x * pixelStride;
 
     for (; h > 0; --h) {
@@ -2668,9 +2358,9 @@ blendSrcOver8888(jint *intData,
         jlong fa = (256 - aval) * dalpha * recip;
         jlong fb = 255 * aval * recip;
         jint oalpha = denom >> 8;
-        jint ored = (jint)((fa * dred + fb * sred + HALF_1_SHIFT_23) >> 24);
-        jint ogreen = (jint)((fa * dgreen + fb * sgreen + HALF_1_SHIFT_23) >> 24);
-        jint oblue = (jint)((fa * dblue + fb * sblue + HALF_1_SHIFT_23) >> 24);
+        jint ored = (jint)((fa * dred + fb * sred) >> 24);
+        jint ogreen = (jint)((fa * dgreen + fb * sgreen) >> 24);
+        jint oblue = (jint)((fa * dblue + fb * sblue) >> 24);
 
         ival = (oalpha << 24) | (ored << 16) | (ogreen << 8) | oblue;
         *intData = ival;
@@ -2706,9 +2396,9 @@ blendSrcOver5658(unsigned short *shortData, jbyte * alphaData,
         jint ogreen = (jint)((fa * dgreen + fb * sgreen) >> 24);
         jint oblue = (jint)((fa * dblue + fb * sblue) >> 24);
 
-        sval = ((ored & 0x1f) << 11) | ( (ogreen & 0x3f) << 5) | (oblue & 0x1f);
+        sval = (unsigned short)(((ored & 0x1f) << 11) | ( (ogreen & 0x3f) << 5) | (oblue & 0x1f));
         *shortData = sval;
-        *alphaData = oalpha;                
+        *alphaData = (jbyte) oalpha;                
     }
 }
 
@@ -2726,13 +2416,13 @@ blendSrcOver8888_pre(jint *intData,
     jint dblue = ival & 0xff;
     
     //premultiplied source components (we add 0.5 for presicion)
-    jint psred   = (sred * aval + 127);
+    jint psred   = (sred * aval   + 127);
     jint psgreen = (sgreen * aval + 127);
-    jint psblue  = (sblue * aval + 127);
+    jint psblue  = (sblue * aval  + 127);
     
     jint oneminusaval = (256 - aval);
     
-    jint oalpha = (255 * aval + dalpha * oneminusaval)  >> 8;
+    jint oalpha = (256 * aval + dalpha * oneminusaval)  >> 8;
     jint ored   = (psred   + oneminusaval * dred)     >> 8;
     jint ogreen = (psgreen  + oneminusaval * dgreen)   >> 8;
     jint oblue  = (psblue   + oneminusaval * dblue )   >> 8;
@@ -2742,20 +2432,20 @@ blendSrcOver8888_pre(jint *intData,
 
 
 static void
-blendSrcOver565(jshort *shortData, jint pix) {
+blendSrcOver565(unsigned short *shortData, jint pix) {
     /* assume cred, cgreen, cblue are at the correct bit depths */
 
-    jshort sval = *shortData;
+    unsigned short sval = *shortData;
     int dwAlphaRBtemp = (sval & 0xf81f);
     int dwAlphaGtemp = (sval & 0x07e0);
     int coRB = pix & 0xf81f;
     int coG = pix & 0x07e0;
     int dw6bitOpacity = (pix >> 26) & 0x3f;
 
-    *shortData = ((dwAlphaRBtemp + (((coRB - dwAlphaRBtemp) * dw6bitOpacity) 
+    *shortData = (unsigned short)(((dwAlphaRBtemp + (((coRB - dwAlphaRBtemp) * dw6bitOpacity) 
                                     >> 6)) & 0xf81f) |
                  ((dwAlphaGtemp + (((coG - dwAlphaGtemp) * dw6bitOpacity) 
-                                    >> 6)) & 0x07e0);
+                                    >> 6)) & 0x07e0));
 }
 
 
@@ -2833,9 +2523,9 @@ blendSrc5658(unsigned short *shortData, jbyte * alphaData,
         jint ogreen = (jint)((fa * dgreen + fb * sgreen) >> 24);
         jint oblue = (jint)((fa * dblue + fb * sblue) >> 24);
 
-        sval = ((ored & 0x1f) << 11) | ((ogreen & 0x3f) << 5) | (oblue &0x1f);
+        sval = (unsigned short)(((ored & 0x1f) << 11) | ((ogreen & 0x3f) << 5) | (oblue &0x1f));
         *shortData = sval;
-        *alphaData = oalpha;        
+        *alphaData = (jbyte) oalpha;        
     }
 }
 
@@ -2859,10 +2549,10 @@ blendSrc8888_pre(jint *intData,
     } else {
         jlong fa = raaval ;
         jlong fb = aval;
-        jint oalpha = (denom + 128) >> 8;
-        jint ored = (jint)((fa * dred + fb * sred + 128) >> 8);
-        jint ogreen = (jint)((fa * dgreen + fb * sgreen + 128) >> 8);
-        jint oblue = (jint)((fa * dblue + fb * sblue + 128) >> 8);
+        jint oalpha = denom >> 8;
+        jint ored = (jint)((fa * dred + fb * sred) >> 8);
+        jint ogreen = (jint)((fa * dgreen + fb * sgreen) >> 8);
+        jint oblue = (jint)((fa * dblue + fb * sblue) >> 8);
         
         ival = (oalpha << 24) | (ored << 16) | (ogreen << 8) | oblue;
         *intData = ival;
@@ -2873,7 +2563,7 @@ static void
 blendLine(void *data, jbyte *alphaBuffer, jint imageType, jint offset, jint stride,
           jint length, jint alpha, jint red, jint green, jint blue) {
     jint *intData;
-    jshort *shortData;
+    unsigned short *shortData;
     jbyte *byteData, *alphaData;
     jint i;
 
@@ -2896,17 +2586,16 @@ blendLine(void *data, jbyte *alphaBuffer, jint imageType, jint offset, jint stri
             offset += stride;
         }    
     } else if (imageType == TYPE_USHORT_5658) {
-        shortData = (jshort *)data;
+        shortData = (unsigned short *)data;
         alphaData = alphaBuffer;
         for (i = 0; i < length; i++) {
-            blendSrcOver5658((unsigned short *) &shortData[offset],
-                             &alphaData[offset], alpha, red, 
+            blendSrcOver5658(&shortData[offset],&alphaData[offset], alpha, red, 
                              green, blue);
             offset += stride;
         }
     } else if (imageType == TYPE_USHORT_565_RGB) {
         int cval = (alpha << 24) | (red << 11) | (green << 6) | blue;
-        shortData = (jshort *)data;
+        shortData = (unsigned short *)data;
         for (i = 0; i < length; i++) {
             blendSrcOver565(&shortData[offset], cval);
             offset += stride;

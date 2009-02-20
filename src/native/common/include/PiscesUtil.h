@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -98,11 +98,11 @@
 #define ALLOC3(array, type, len) ALLOC(array, type, len, len)
 
 /**
- * @def REALLOC(array, type, thresh, len)
+ * @def PISCES_REALLOC(array, type, thresh, len)
  * If 'array' is null or smaller than 'thresh', allocate with
  * length max(thresh, len).  Copy old contents into new storage.
  */
-#define REALLOC(array, type, thresh, len) do { \
+#define PISCES_REALLOC(array, type, thresh, len) do { \
   if (array == NULL || array##_length < (thresh)) { \
     jint nlen; \
     nlen = MAX(thresh, len); \
@@ -126,22 +126,11 @@
   } \
 } while (0)
 
-/** Convert 24-bit RGB color to 16bit (565) color */
-#define CONVERT_888_TO_565_VALS(r, g, b) \
-                ( (((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3))
-
-/** Convert 24-bit RGB color to 16bit (565) color */
-#define CONVERT_888_TO_565(x) ((( (x) & 0x00F80000) >> 8) | \
-                (( (x) & 0x0000FC00) >> 5) | \
-                (( (x) & 0x000000F8) >> 3) )
-
-/** Convert 16-bit (565) color to 24-bit RGB color */
-#define CONVERT_565_TO_888(x) ( ((x & 0x001F) << 3) | ((x & 0x001C) >> 2) |\
-                              ((x & 0x07E0) << 5) | ((x & 0x0600) >> 1) |\
-                              ((x & 0xF800) << 8) | ((x & 0xE000) << 3) )
-
 extern jint PISCES_STROKE_X_BIAS;
 extern jint PISCES_STROKE_Y_BIAS;
+
+extern jint *_Pisces_convert8To5;
+extern jint *_Pisces_convert8To6;
 
 jboolean piscesutil_moduleInitialize();
 void piscesutil_moduleFinalize();
