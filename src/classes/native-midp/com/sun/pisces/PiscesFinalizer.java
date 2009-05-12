@@ -1,7 +1,7 @@
 /*
  *
  *
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This program is free software; you can redistribute it and/or
@@ -40,7 +40,6 @@ public class PiscesFinalizer {
      * The constructor. It should not be used directly.
      */
     private PiscesFinalizer() {
-        initialize();
     }
 
     /**
@@ -49,17 +48,12 @@ public class PiscesFinalizer {
      */
     public static void init() {
         if (cleaner == null){
-	         cleaner = new PiscesFinalizer();
-	       }
+	    cleaner = new PiscesFinalizer();
+	}
     }
 
     /**
      * Uninitializes native Pisces module.
      */
-    private native void finalize();
-    
-    /**
-     * Itializes native Pisces module.
-     */
-    private native void initialize();
+    protected native void finalize();
 }

@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -520,20 +520,20 @@ stroker_setParameters(Pipeline* pipeline, jint lineWidth,
     }
 
     numPenSegments = (jint)(3.14159f*lineWidth/65536.0f);
-    REALLOC(pipeline->stroker_pen_dx, jint, numPenSegments,
+    PISCES_REALLOC(pipeline->stroker_pen_dx, jint, numPenSegments,
             pipeline->stroker_pen_dx_length * 2);
     ASSERT_ALLOC(pipeline->stroker_pen_dx);
 
-    REALLOC(pipeline->stroker_pen_dy, jint, numPenSegments,
+    PISCES_REALLOC(pipeline->stroker_pen_dy, jint, numPenSegments,
             pipeline->stroker_pen_dy_length * 2);
     ASSERT_ALLOC(pipeline->stroker_pen_dy);
 
-    REALLOC(pipeline->stroker_penIncluded, jboolean, numPenSegments,
+    PISCES_REALLOC(pipeline->stroker_penIncluded, jboolean, numPenSegments,
             pipeline->stroker_penIncluded_length * 2);
     ASSERT_ALLOC(pipeline->stroker_penIncluded);
 
     newSize = 2 * numPenSegments;
-    REALLOC(pipeline->stroker_join, jint, newSize,
+    PISCES_REALLOC(pipeline->stroker_join, jint, newSize,
             pipeline->stroker_join_length * 2);
     ASSERT_ALLOC(pipeline->stroker_join);
 
@@ -1102,8 +1102,8 @@ stroker_computeOffset(Pipeline* pipeline, jint x0, jint y0,
         if (ilen == 0) {
             dx = dy = 0;
         } else {
-            dx = (jint)( ((ly * (pipeline->stroker_scaledLineWidth2 >> 16))/ilen) );
-            dy = (jint)(-((lx * (pipeline->stroker_scaledLineWidth2 >> 16))/ilen) );
+            dx = (jint)( (ly*pipeline->stroker_scaledLineWidth2)/ilen >> 16);
+            dy = (int)(-(lx*pipeline->stroker_scaledLineWidth2)/ilen >> 16);
         }
     } else {
         jdouble dlx = x1 - x0;
@@ -1151,7 +1151,7 @@ stroker_emitLineTo(Pipeline* pipeline, jint x1, jint y1,
                    jboolean rev) {
     if (rev) {
         jint rindex = pipeline->stroker_rindex;
-        REALLOC(pipeline->stroker_reverse, jint, rindex + 2,
+        PISCES_REALLOC(pipeline->stroker_reverse, jint, rindex + 2,
                 pipeline->stroker_reverse_length * 2);
         ASSERT_ALLOC(pipeline->stroker_reverse);
 
@@ -1180,6 +1180,9 @@ stroker_computeRoundJoin(Pipeline* pipeline, jint cx, jint cy,
     jint* pen_dx = pipeline->stroker_pen_dx;
     jint* pen_dy = pipeline->stroker_pen_dy;
     jboolean* penIncluded = pipeline->stroker_penIncluded;
+
+    // IMPL NOTE : to fix warning
+    (void) flip;
 
     if (side == 0) {
         centerSide = stroker_side(cx, cy, xa, ya, xb, yb);
@@ -1226,22 +1229,12 @@ stroker_computeRoundJoin(Pipeline* pipeline, jint cx, jint cy,
         jboolean rev = (dxa*dxa + dya*dya > dxb*dxb + dyb*dyb);
         jint i = rev ? end : start;
         jint incr = rev ? -1 : 1;
-
-        jint preNcoords = (abs(start - end) + 1) * 2;
-
         while (1) {
             jint idx = i % numPenSegments;
             px = cx + pen_dx[idx];
             py = cy + pen_dy[idx];
-
-            if (flip) {
-                join[preNcoords - ncoords++ - 1] = py;
-                join[preNcoords - ncoords++ - 1] = px;
-            } else {
-                join[ncoords++] = px;
-                join[ncoords++] = py;
-            }
-
+            join[ncoords++] = px;
+            join[ncoords++] = py;
             if (i == (rev ? start : end)) {
                 break;
             }

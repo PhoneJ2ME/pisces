@@ -24,17 +24,21 @@
  */
 
 
-#ifndef MIDP_PISCES_UTILS_H
-#define MIDP_PISCES_UTILS_H
-                                  
-#define PISCES_GET_DATA_POINTER(array) &array->elements[0]
-#include <midpGraphics.h>
-#include <midpLCDUI.h>
-#include <images.h>
+package com.sun.pisces;
 
-extern VDC screenBuffer;
+import javax.microedition.lcdui.Graphics;
 
-VDC *
-setupImageVDC(jobject img, VDC *vdc);
-                                 
-#endif //MIDP_PISCES_UTILS_H
+public interface GraphicsSurfaceIface {
+
+    public void bindTarget(Object g);
+    
+    public void releaseTarget();
+
+    public void getRGB(int[] argb, int offset, int scanLength, 
+            int x, int y, int width, int height);
+
+    public void setRGB(int[] argb, int offset, int scanLength, 
+            int x, int y, int width, int height);
+
+}
+

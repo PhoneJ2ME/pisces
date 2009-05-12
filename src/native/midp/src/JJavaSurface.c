@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -55,7 +55,7 @@ typedef struct _JavaSurface {
 } JavaSurface;
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_JavaSurface_initialize() {
+KNIDECL(com_sun_pisces_JavaSurface_initialize) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
