@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -38,8 +38,10 @@ pisces_moduleInitialize() {
         return initializationResult;
     }
     alreadyInitialized = XNI_TRUE;
-    if (!piscesmath_moduleInitialize()) {
+    if (!piscesmath_moduleInitialize() ||
+            !piscesutil_moduleInitialize()) {
         piscesmath_moduleFinalize();
+        piscesutil_moduleFinalize();
         initializationResult = XNI_FALSE;
         return XNI_FALSE;
     }
@@ -52,6 +54,7 @@ void
 pisces_moduleFinalize() {
     if (alreadyInitialized) {
         piscesmath_moduleFinalize();
+        piscesutil_moduleFinalize();
         alreadyInitialized = XNI_FALSE;
     }
 }

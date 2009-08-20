@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -83,7 +83,7 @@ static void premulOpacity(jint* srcArray, jint scanLength,
                           jint* dstArray);
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_GraphicsSurfaceDestination_initialize() {
+KNIDECL(com_sun_pisces_GraphicsSurfaceDestination_initialize) {
 
     /* don't do anything here (see the throw above)! */
 
@@ -91,7 +91,7 @@ Java_com_sun_pisces_GraphicsSurfaceDestination_initialize() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_GraphicsSurfaceDestination_drawSurfaceImpl() {
+KNIDECL(com_sun_pisces_GraphicsSurfaceDestination_drawSurfaceImpl) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(graphicsHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -109,14 +109,14 @@ Java_com_sun_pisces_GraphicsSurfaceDestination_drawSurfaceImpl() {
     KNI_GetParameterAsObject(1, graphicsHandle);
     KNI_GetParameterAsObject(2, surfaceHandle);
 
-    surface = &surface_get(surfaceHandle)->super;
+    surface = &surface_get(_ee, surfaceHandle)->super;
 
     CORRECT_DIMS(surface, srcX, srcY, width, height, dstX, dstY);
 
     if ((width > 0) && (height > 0) && (opacity > 0)) {
         jboolean retVal;
 
-        ACQUIRE_SURFACE(surface, surfaceHandle);
+        ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
         retVal =
             pisces_drawRGB(graphicsHandle,
                            (jint*)surface->data + srcY * surface->width + srcX,
@@ -138,7 +138,7 @@ Java_com_sun_pisces_GraphicsSurfaceDestination_drawSurfaceImpl() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_GraphicsSurfaceDestination_drawRGBImpl() {
+KNIDECL(com_sun_pisces_GraphicsSurfaceDestination_drawRGBImpl) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(graphicsHandle);
     KNI_DeclareHandle(arrayHandle);

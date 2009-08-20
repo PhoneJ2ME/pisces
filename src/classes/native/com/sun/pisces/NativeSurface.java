@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -60,7 +60,7 @@ public final class NativeSurface extends AbstractSurface {
 
     private native void initialize(int dataType, int width, int height);
     public native void clean();
-    public native void draw(Graphics g, int x, int y, int w, int h,
+    public native void draw(Object g, int x, int y, int w, int h,
                              float alpha);
     
     protected int width;

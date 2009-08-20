@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -27,25 +27,9 @@
 package com.sun.pisces;
 
 class NativeFinalizer {
-    private NativeFinalization guardedObject;
-    
-    private static final class RendererNativeFinalizer extends NativeFinalizer {
-        public RendererNativeFinalizer(PiscesRenderer renderer) {
-            super(renderer);
-        }
-        
-        private native void finalize();
-    };
+    protected NativeFinalization guardedObject;
 
-    private static final class SurfaceNativeFinalizer extends NativeFinalizer {
-        public SurfaceNativeFinalizer(AbstractSurface surface) {
-            super(surface);
-        }
-        
-        private native void finalize();
-    };
-    
-    private NativeFinalizer(NativeFinalization forObject) {
+    NativeFinalizer(NativeFinalization forObject) {
         guardedObject = forObject;
         initialize();
     }
@@ -57,6 +41,22 @@ class NativeFinalizer {
     public static NativeFinalizer createInstance(AbstractSurface surface) {
         return new SurfaceNativeFinalizer(surface);
     }
-    
+
     private native final void initialize();
 }
+
+final class RendererNativeFinalizer extends NativeFinalizer {
+    public RendererNativeFinalizer(PiscesRenderer renderer) {
+        super(renderer);
+    }
+
+    protected native void finalize();
+};
+
+final class SurfaceNativeFinalizer extends NativeFinalizer {
+    public SurfaceNativeFinalizer(AbstractSurface surface) {
+        super(surface);
+    }
+
+    protected native void finalize();
+};

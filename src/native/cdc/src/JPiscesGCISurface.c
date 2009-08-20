@@ -1,5 +1,5 @@
 /* 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This program is free software; you can redistribute it and/or
@@ -24,8 +24,6 @@
  */
 
 
-#include "jlong.h"
-
 #include <JAbstractSurface.h>
 
 #include <JNIUtil.h>
@@ -49,9 +47,7 @@
 #define SURFACE_OFFSET 6
 #define SURFACE_SCANLINE_STRIDE 7
 #define SURFACE_PIXEL_STRIDE 8
-#define SURFACE_WIDTH 9
-#define SURFACE_HEIGHT 10
-#define SURFACE_LAST SURFACE_HEIGHT
+#define SURFACE_LAST SURFACE_PIXEL_STRIDE
 
 static jfieldID fieldIds[SURFACE_LAST + 1];
 static jboolean fieldIdsInitialized = JNI_FALSE;
@@ -112,19 +108,12 @@ Java_com_sun_pisces_PiscesGCISurface_initialize(JNIEnv* env,
                         (*env)->GetIntField(env, objectHandle, 
                                             fieldIds[SURFACE_PIXEL_STRIDE]);
 
-                surface->super.width =
-                        (*env)->GetIntField(env, objectHandle, 
-                                            fieldIds[SURFACE_WIDTH]);
-                surface->super.height =
-                        (*env)->GetIntField(env, objectHandle, 
-                                            fieldIds[SURFACE_HEIGHT]);
-
                 arrayType = 
                         (*env)->GetIntField(env, objectHandle, 
                                             fieldIds[SURFACE_TYPE_OF_ARRAY]);
 
                 if (arrayType == TYPE_OF_ARRAY_NATIVE) {
-                    surface->super.data = jlong_to_ptr((*env)->GetLongField(
+                    surface->super.data = (void*)((int)(*env)->GetLongField(
                             env, 
                             objectHandle,
                             fieldIds[SURFACE_NATIVE_ARRAY]));
@@ -184,8 +173,6 @@ initializeSurfaceFieldIds(JNIEnv* env, jobject objectHandle) {
                 { "offset", "I" },
                 { "scanlineStride", "I" },
                 { "pixelStride", "I" },
-                { "width", "I" },
-                { "height", "I" },
                 { NULL, NULL }
             };
 
@@ -261,12 +248,6 @@ surface_acquire_dynamic(AbstractSurface* surface, JNIEnv* env,
     surface->super.pixelStride =
             (*env)->GetIntField(env, surfaceHandle, 
                                 fieldIds[SURFACE_PIXEL_STRIDE]);
-    surface->super.width =
-            (*env)->GetIntField(env, surfaceHandle, 
-                                fieldIds[SURFACE_WIDTH]);
-    surface->super.height =
-            (*env)->GetIntField(env, surfaceHandle, 
-                                fieldIds[SURFACE_HEIGHT]);
 
     arrayType = (*env)->GetIntField(env, surfaceHandle, 
                                     fieldIds[SURFACE_TYPE_OF_ARRAY]);
@@ -274,7 +255,7 @@ surface_acquire_dynamic(AbstractSurface* surface, JNIEnv* env,
 
     if (arrayType == TYPE_OF_ARRAY_NATIVE) {
         surface->super.data = 
-                jlong_to_ptr((*env)->GetLongField(env, 
+                (void*)((int)(*env)->GetLongField(env, 
                                             surfaceHandle,
                                             fieldIds[SURFACE_NATIVE_ARRAY]));
         if (surface->super.data == NULL) {

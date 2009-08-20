@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -106,7 +106,7 @@ addEdge(Renderer* rdr, jint x0, jint y0, jint x1, jint y1) {
     jint eminY, emaxY;
 
     jint newLen = rdr->_edgeIdx + 5;
-    REALLOC(rdr->_edges, jint, newLen, rdr->_edges_length * 2);
+    PISCES_REALLOC(rdr->_edges, jint, newLen, rdr->_edges_length * 2);
     ASSERT_ALLOC(rdr->_edges);
 
     orientation = 1;

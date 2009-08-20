@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
+ * Copyright  1990-2006 Sun Microsystems, Inc. All Rights Reserved. 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
  *  
  * This program is free software; you can redistribute it and/or 
@@ -28,14 +28,16 @@ package com.sun.pisces;
 
 import javax.microedition.lcdui.Graphics;
 
-public final class GraphicsSurface extends AbstractSurface {
-    private Graphics g;
+public final class GraphicsSurface extends AbstractSurface implements GraphicsSurfaceIface {
+//    private Graphics g;
+    private Object g;
 
     public GraphicsSurface() {
         initialize();
     }
     
-    public void bindTarget(Graphics g) {
+    public void bindTarget(Object g) {
+//        this.g = (Graphics) g;
         this.g = g;
     }
     

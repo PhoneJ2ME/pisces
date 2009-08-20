@@ -1,5 +1,5 @@
 /* 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This program is free software; you can redistribute it and/or
@@ -91,10 +91,6 @@ public final class PiscesGCISurface extends AbstractSurface {
     private int offset;
     private int scanlineStride;
     private int pixelStride;
-
-    private int width;
-    private int height;
-    
     
     /** 
      * Instantiates wrapper class of GCIDrawingSurface for Pisces rendering.
@@ -107,40 +103,37 @@ public final class PiscesGCISurface extends AbstractSurface {
         gciSurface = surface;
         
         switch (surface.getFormat()) {
-        case GCIDrawingSurface.FORMAT_RGB_888:
-        case GCIDrawingSurface.FORMAT_XRGB_8888:
-            imageType = RendererBase.TYPE_INT_RGB;
-            bitsToPixelsShift = 5;  // 2 ^ 5 = 32
-            break;
-	    case GCIDrawingSurface.FORMAT_ARGB_8888:	
-	        imageType = RendererBase.TYPE_INT_ARGB;
-            bitsToPixelsShift = 5;  // 2 ^ 5 = 32
-            break;
-        case GCIDrawingSurface.FORMAT_RGB_565:
-            imageType = RendererBase.TYPE_USHORT_565_RGB;
-            bitsToPixelsShift = 4; // 2 ^ 4 = 16
-            break;
-        case GCIDrawingSurface.FORMAT_GRAY_8:
-            imageType = RendererBase.TYPE_BYTE_GRAY;
-            bitsToPixelsShift = 3; // 2 ^ 3 = 8
-            break;
-        case GCIDrawingSurface.FORMAT_ARGB_8888_PRE:
-            imageType = RendererBase.TYPE_INT_ARGB_PRE;
-            bitsToPixelsShift = 5; // 2 ^ 5 = 32
-            break;
-        default:
-            throw new IllegalArgumentException("Pisces does not support"
-                                               + " " + surface.getFormat() + " yet") ;
+            case GCIDrawingSurface.FORMAT_RGB_888:
+            case GCIDrawingSurface.FORMAT_XRGB_8888:
+            case GCIDrawingSurface.FORMAT_ARGB_8888:
+                imageType = RendererBase.TYPE_INT_RGB;
+                bitsToPixelsShift = 5;  // 2 ^ 5 = 32
+                break;
+            case GCIDrawingSurface.FORMAT_RGB_565:
+                imageType = RendererBase.TYPE_USHORT_565_RGB;
+                bitsToPixelsShift = 4; // 2 ^ 4 = 16
+                break;
+            case GCIDrawingSurface.FORMAT_GRAY_8:
+                imageType = RendererBase.TYPE_BYTE_GRAY;
+                bitsToPixelsShift = 3; // 2 ^ 3 = 8
+                break;
+            case GCIDrawingSurface.FORMAT_ARGB_8888_PRE:
+                imageType = RendererBase.TYPE_INT_ARGB_PRE;
+                bitsToPixelsShift = 5; // 2 ^ 5 = 32
+                break;
+            default:
+                throw new IllegalArgumentException("Pisces does not support"
+                        + " " + surface.getFormat() + " yet") ;
         }
-        
-        width = surface.getWidth();
-        height = surface.getHeight();
-        
+
+        int width = surface.getWidth();
+        int height = surface.getHeight();
+
         if (surface.isSurfaceInfoDynamic()) {
             initialize(imageType, width, height, true);
         } else {
             // acquire surface once
-            acquireSurface(false);
+            acquireSurface();
             initialize(imageType, width, height, false);
         }
     }
@@ -151,33 +144,20 @@ public final class PiscesGCISurface extends AbstractSurface {
      * pisces and GCI surfaces synchronization.
      */ 
     public void acquireSurface() {
-        acquireSurface(true);
-    }
-
-    /**
-     * Helper method. Acquires surface.
-     */
-    private void acquireSurface(boolean callBegin) {
         if (gciSurfaceInfo != null) {
             // we have already acquired the surface
             return;
-        }
-        if (callBegin) {
-            gciSurface.renderingBegin();
         }
         gciSurfaceInfo = gciSurface.getSurfaceInfo();    
         if (gciSurfaceInfo == null) {
             throw new RuntimeException("Unable to get surface information");
         }
-        
+
         offset = gciSurfaceInfo.getBitOffset() >> bitsToPixelsShift;
         scanlineStride = 
                 gciSurfaceInfo.getYBitStride() >> bitsToPixelsShift;
         pixelStride =
-                gciSurfaceInfo.getXBitStride() >> bitsToPixelsShift;
-
-        width = gciSurface.getWidth();
-        height = gciSurface.getHeight();
+                gciSurfaceInfo.getXBitStride() >> bitsToPixelsShift; 
         
         if (gciSurface.isNativeSurface()) {
             typeOfArray = TYPE_OF_ARRAY_NATIVE;
@@ -218,7 +198,6 @@ public final class PiscesGCISurface extends AbstractSurface {
 
             gciSurfaceInfo.release();
             gciSurfaceInfo = null;
-            gciSurface.renderingEnd(null);    
         }
     }
     
