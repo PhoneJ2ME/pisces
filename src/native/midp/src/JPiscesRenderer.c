@@ -1,25 +1,25 @@
 /*
- * 
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved. 
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER 
- *  
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License version 
- * 2 only, as published by the Free Software Foundation. 
- *  
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * General Public License version 2 for more details (a copy is 
- * included at /legal/license.txt). 
- *  
- * You should have received a copy of the GNU General Public License 
- * version 2 along with this work; if not, write to the Free Software 
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 
- * 02110-1301 USA 
- *  
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa 
- * Clara, CA 95054 or visit www.sun.com if you need additional 
+ *
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version
+ * 2 only, as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License version 2 for more details (a copy is
+ * included at /legal/license.txt).
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this work; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
+ * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa
+ * Clara, CA 95054 or visit www.sun.com if you need additional
  * information or have any questions.
  */
 
@@ -39,7 +39,6 @@
 #include <sni.h>
 #include <commonKNIMacros.h>
 
-
 #define RENDERER_NATIVE_PTR 0
 #define RENDERER_SURFACE 1
 #define RENDERER_LAST RENDERER_SURFACE
@@ -50,19 +49,19 @@
 #define CMD_CURVE_TO 3
 #define CMD_CLOSE 4
 
-#define SURFACE_FROM_RENDERER(surface, surfaceHandle, rendererHandle)     \
+#define SURFACE_FROM_RENDERER(ee, surface, surfaceHandle, rendererHandle)     \
         KNI_GetObjectField((rendererHandle), fieldIds[RENDERER_SURFACE],  \
                            (surfaceHandle));                              \
-        (surface) = &surface_get((surfaceHandle))->super;
+        (surface) = &surface_get((ee), (surfaceHandle))->super;
 
 static jfieldID fieldIds[RENDERER_LAST + 1];
 static jboolean fieldIdsInitialized = KNI_FALSE;
 
-static jboolean initializeRendererFieldIds(jobject objectHandle);
+static jboolean initializeRendererFieldIds(CVMExecEnv* _ee, jobject objectHandle);
 static int toPiscesCoords(unsigned int ff);
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_staticInitialize() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_staticInitialize) {
     jint xbias = KNI_GetParameterAsInt(1);
     jint ybias = KNI_GetParameterAsInt(2);
 
@@ -81,7 +80,7 @@ Java_com_sun_pisces_PiscesRenderer_staticInitialize() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_initialize() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_initialize) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -91,20 +90,20 @@ Java_com_sun_pisces_PiscesRenderer_initialize() {
 
     KNI_GetThisPointer(objectHandle);
 
-    if (initializeRendererFieldIds(objectHandle)) {
-        KNI_GetObjectField(objectHandle, fieldIds[RENDERER_SURFACE], 
+    if (initializeRendererFieldIds(_ee, objectHandle)) {
+        KNI_GetObjectField(objectHandle, fieldIds[RENDERER_SURFACE],
                            surfaceHandle);
-        surface = &surface_get(surfaceHandle)->super;
+        surface = &surface_get(_ee, surfaceHandle)->super;
 
 /*
  *      ACQUIRE_SURFACE(surface, surfaceHandle);
- */ 
+ */
         rdr = renderer_create(surface);
         KNI_SetLongField(objectHandle, fieldIds[RENDERER_NATIVE_PTR],
                          PointerToJLong(rdr));
 /*
  *      RELEASE_SURFACE(surface, surfaceHandle);
- */ 
+ */
 
         //    KNI_registerCleanup(objectHandle, disposeNativeImpl);
 
@@ -124,7 +123,7 @@ Java_com_sun_pisces_PiscesRenderer_initialize() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_nativeFinalize() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_nativeFinalize) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -142,7 +141,7 @@ Java_com_sun_pisces_PiscesRenderer_nativeFinalize() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_beginRenderingIIIII() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_beginRenderingIIIII) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -160,8 +159,8 @@ Java_com_sun_pisces_PiscesRenderer_beginRenderingIIIII() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_beginRendering5(rdr, minX, minY, width, height, windingRule);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -176,7 +175,7 @@ Java_com_sun_pisces_PiscesRenderer_beginRenderingIIIII() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_beginRenderingI() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_beginRenderingI) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -190,8 +189,8 @@ Java_com_sun_pisces_PiscesRenderer_beginRenderingI() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_beginRendering1(rdr, windingRule);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -206,7 +205,7 @@ Java_com_sun_pisces_PiscesRenderer_beginRenderingI() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_endRendering() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_endRendering) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -218,8 +217,8 @@ Java_com_sun_pisces_PiscesRenderer_endRendering() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_endRendering(rdr);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -234,7 +233,7 @@ Java_com_sun_pisces_PiscesRenderer_endRendering() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setClip() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setClip) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -261,7 +260,7 @@ Java_com_sun_pisces_PiscesRenderer_setClip() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_resetClip() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_resetClip) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -283,7 +282,7 @@ Java_com_sun_pisces_PiscesRenderer_resetClip() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setTransform() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setTransform) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(transformHandle);
@@ -310,7 +309,7 @@ Java_com_sun_pisces_PiscesRenderer_setTransform() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_getTransformImpl() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_getTransformImpl) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(transformHandle);
@@ -335,7 +334,7 @@ Java_com_sun_pisces_PiscesRenderer_getTransformImpl() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setStrokeImpl() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setStrokeImpl) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(arrayHandle);
@@ -384,7 +383,7 @@ Java_com_sun_pisces_PiscesRenderer_setStrokeImpl() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setStrokeImplNoParam() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setStrokeImplNoParam) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -406,7 +405,7 @@ Java_com_sun_pisces_PiscesRenderer_setStrokeImplNoParam() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setFill() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setFill) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -428,7 +427,7 @@ Java_com_sun_pisces_PiscesRenderer_setFill() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setColor() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setColor) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -455,7 +454,7 @@ Java_com_sun_pisces_PiscesRenderer_setColor() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setCompositeRule() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setCompositeRule) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -479,7 +478,7 @@ Java_com_sun_pisces_PiscesRenderer_setCompositeRule() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setComposite() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setComposite) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -505,7 +504,7 @@ Java_com_sun_pisces_PiscesRenderer_setComposite() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setTextureImpl() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setTextureImpl) {
     KNI_StartHandles(3);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(arrayHandle);
@@ -577,7 +576,7 @@ Java_com_sun_pisces_PiscesRenderer_setTextureImpl() {
                size + 2 * sizeof(jint));
 
         transform_get6(&textureTransform, transformHandle);
-        renderer_setTexture(rdr, data, width, height, repeat, 
+        renderer_setTexture(rdr, data, width, height, repeat,
                             &textureTransform);
 
         if (KNI_TRUE == readAndClearMemErrorFlag()) {
@@ -591,191 +590,7 @@ Java_com_sun_pisces_PiscesRenderer_setTextureImpl() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setTextureFromImageImpl() {
-    KNI_StartHandles(8);
-    KNI_DeclareHandle(objectHandle);
-    KNI_DeclareHandle(imageHandle);
-    KNI_DeclareHandle(transformHandle);
-    KNI_DeclareHandle(imageData);
-    KNI_DeclareHandle(pixelData);
-    KNI_DeclareHandle(alphaData);
-    KNI_DeclareHandle(ImageClass);
-    KNI_DeclareHandle(ImageDataClass);
-    
-    jint width = KNI_GetParameterAsInt(2);
-    jint height = KNI_GetParameterAsInt(3);
-    jint offset = KNI_GetParameterAsInt(4);
-    jint stride = KNI_GetParameterAsInt(5);
-    
-
-    Renderer* rdr;
-
-    //buffers to store 565 image data and optionaly alpha data (if provided by image)
-    jbyte* data = NULL;
-    jbyte* aData = NULL;
-    
-    Transform6 textureTransform;
-    
-    jfieldID imageDataFieldId;    
-    jfieldID imageDataPixelDataId;
-    jfieldID imageDataAlphaDataId;
-    
-    jint success = 0;
-
-    KNI_GetThisPointer(objectHandle);
-    KNI_GetParameterAsObject(1, imageHandle);
-    KNI_GetParameterAsObject(6, transformHandle);
-
-    // let's get Image's class 
-    if (!KNI_IsNullHandle(imageHandle)) {  
-        KNI_GetObjectClass(imageHandle, ImageClass);
-    
-        if (!KNI_IsNullHandle(ImageClass)) {      
-            imageDataFieldId = KNI_GetFieldID(ImageClass, "imageData", "Ljavax/microedition/lcdui/ImageData;");
-            if (imageDataFieldId != NULL) {        
-                KNI_GetObjectField(imageHandle, imageDataFieldId, imageData);
-                if (!KNI_IsNullHandle(imageData)) {
-      
-                    KNI_GetObjectClass(imageData, ImageDataClass);
-                    if (!KNI_IsNullHandle(ImageDataClass)) {
-                        imageDataPixelDataId = 
-                            KNI_GetFieldID(ImageDataClass, "pixelData", "[B");
-                        imageDataAlphaDataId = 
-                            KNI_GetFieldID(ImageDataClass, "alphaData", "[B");
-                        if (imageDataPixelDataId == NULL || 
-                            imageDataAlphaDataId == NULL) {
-                        } else {
-                            KNI_GetObjectField(imageData, 
-                                               imageDataPixelDataId, pixelData);
-                            KNI_GetObjectField(imageData, 
-                                               imageDataAlphaDataId, alphaData);
-                            success = 1; //we have got pixelData, alphaData object handles successfuly
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    if (success) {
-        if (!KNI_IsNullHandle(pixelData)) {
-            //565 in ImageData is stored as 2bytes per pixel
-            data = (jbyte*)PISCESmalloc((width + 2) * (height + 2) * 2);
-            
-            if (data == NULL) {
-                KNI_ThrowNew("java/lang/OutOfMemoryError",
-                     "Allocation of renderer memory for texture failed.");
-            }
-        }
-    
-        if (!KNI_IsNullHandle(alphaData)) {   
-            //possibly with alpha channel
-            if (KNI_GetArrayLength(alphaData) > 0) {
-                //we allocate this buffer only if needed 
-                aData = (jbyte*)PISCESmalloc((width + 2) * (height + 2));           
-                if (NULL == aData) {
-                    KNI_ThrowNew("java/lang/OutOfMemoryError",
-                    "Allocation of renderer memory for texture alpha data failed.");
-                }
-            }
-        }
-    
-        rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
-                                        fieldIds[RENDERER_NATIVE_PTR]));
-
-        //NOTE : data is freed at finalization time by renderer_dispose() or when paint mode changes
-
-        if (NULL != data) {
-            jint sidx = offset << 1;
-            jint sadd = stride << 1;
-            jint size = width << 1;
-            jint dadd = (width + 2) << 1;
-            jbyte* dest = data + dadd;
-            
-            jint h2 = height;
-            
-            jint copyToLastCol;
-            jint copyToFirstRow;
-            jint copyToLastRow;
-    
-            /* prepare additional pixels for interpolation */
-            
-            copyToLastCol = (width - 1) << 1;
-            copyToFirstRow = 0;
-            copyToLastRow = (height - 1);
-            
-            if (aData == NULL) {
-                for (; h2 > 0; --h2) {
-                    KNI_GetRawArrayRegion(pixelData, sidx, size, 
-                                          (jbyte*)(dest + 2));
-                    dest[0] = dest[2];
-                    dest[1] = dest[3];
-                    dest[size + 1] = dest[copyToLastCol + 1];
-                    dest[size + 2] = dest[copyToLastCol + 2];
-                    dest += dadd;
-                    sidx += sadd;
-                }
-                memcpy(data, data + dadd,
-                       size + 4);
-                memcpy(dest, data + (copyToLastRow + 1) * dadd,
-                       size + 4);
-            } else {
-                jint sidxalpha = offset;
-                jint salphaadd = stride;
-                jint sizealpha = width;
-                jint dalphaadd = width + 2;
-                jbyte* destAlpha =  aData + dalphaadd;
-                jint copyToLastColAlpha = width - 1;
-                
-                for (; h2 > 0; --h2) {
-                    KNI_GetRawArrayRegion(pixelData, sidx, size, 
-                                          (jbyte*)(dest + 2));
-                    dest[0] = dest[2];
-                    dest[1] = dest[3];
-                    dest[size + 1] = dest[copyToLastCol + 1];
-                    dest[size + 2] = dest[copyToLastCol + 2];
-                    
-                    KNI_GetRawArrayRegion(alphaData, sidxalpha, sizealpha, 
-                                          (jbyte*)(destAlpha + 1));
-                    destAlpha[0] = destAlpha[1];
-                    destAlpha[sizealpha + 1] = destAlpha[copyToLastColAlpha + 1];
-                    
-                    destAlpha += dalphaadd;
-                    sidxalpha += salphaadd;    
-                    
-                    dest += dadd;
-                    sidx += sadd;
-                }
-                
-                memcpy(data, data + dadd,
-                       size + 4);
-                memcpy(dest, data + (copyToLastRow + 1) * dadd,
-                       size + 4);          
-                memcpy(aData, aData + dalphaadd,
-                       sizealpha + 2);
-                memcpy(destAlpha, aData + (copyToLastRow + 1) * dalphaadd,
-                       sizealpha + 2);                  
-            }
-        
-            transform_get6(&textureTransform, transformHandle);
-            
-            renderer_setTextureViaImage(rdr, data, aData, width, height, KNI_FALSE, 
-                                &textureTransform);
-            
-            if (KNI_TRUE == readAndClearMemErrorFlag()) {
-                KNI_ThrowNew("java/lang/OutOfMemoryError",
-                             "Allocation of internal renderer buffer failed.");
-            }
-        }
-    }
-
-    KNI_EndHandles();
-    KNI_ReturnVoid();
-}
-
-
-KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setLinearGradientImpl() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setLinearGradientImpl) {
     KNI_StartHandles(3);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(rampHandle);
@@ -816,7 +631,7 @@ Java_com_sun_pisces_PiscesRenderer_setLinearGradientImpl() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setRadialGradientImpl() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setRadialGradientImpl) {
     KNI_StartHandles(3);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(rampHandle);
@@ -857,7 +672,7 @@ Java_com_sun_pisces_PiscesRenderer_setRadialGradientImpl() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setAntialiasing() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setAntialiasing) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -881,7 +696,7 @@ Java_com_sun_pisces_PiscesRenderer_setAntialiasing() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_BOOLEAN
-Java_com_sun_pisces_PiscesRenderer_getAntialiasing() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_getAntialiasing) {
     jboolean antialiasingOn;
 
     KNI_StartHandles(1);
@@ -905,7 +720,7 @@ Java_com_sun_pisces_PiscesRenderer_getAntialiasing() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_moveTo() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_moveTo) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -930,7 +745,7 @@ Java_com_sun_pisces_PiscesRenderer_moveTo() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_lineJoin() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_lineJoin) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -952,7 +767,7 @@ Java_com_sun_pisces_PiscesRenderer_lineJoin() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_lineTo() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_lineTo) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -977,7 +792,7 @@ Java_com_sun_pisces_PiscesRenderer_lineTo() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_quadTo() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_quadTo) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -1004,7 +819,7 @@ Java_com_sun_pisces_PiscesRenderer_quadTo() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_cubicTo() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_cubicTo) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -1033,7 +848,7 @@ Java_com_sun_pisces_PiscesRenderer_cubicTo() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_close() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_close) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -1055,7 +870,7 @@ Java_com_sun_pisces_PiscesRenderer_close() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_end() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_end) {
     KNI_StartHandles(1);
     KNI_DeclareHandle(objectHandle);
 
@@ -1077,7 +892,7 @@ Java_com_sun_pisces_PiscesRenderer_end() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_clearRect() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_clearRect) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1094,8 +909,8 @@ Java_com_sun_pisces_PiscesRenderer_clearRect() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_clearRect(rdr, x, y, w, h);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1110,7 +925,7 @@ Java_com_sun_pisces_PiscesRenderer_clearRect() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_drawLine() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_drawLine) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1127,8 +942,8 @@ Java_com_sun_pisces_PiscesRenderer_drawLine() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_drawLine(rdr, x0, y0, x1, y1);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1143,7 +958,7 @@ Java_com_sun_pisces_PiscesRenderer_drawLine() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_drawRect() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_drawRect) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1160,8 +975,8 @@ Java_com_sun_pisces_PiscesRenderer_drawRect() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_drawRect(rdr, x, y, w, h);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1176,7 +991,7 @@ Java_com_sun_pisces_PiscesRenderer_drawRect() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_fillRect() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_fillRect) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1193,8 +1008,8 @@ Java_com_sun_pisces_PiscesRenderer_fillRect() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_fillRect(rdr, x, y, w, h);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1209,7 +1024,7 @@ Java_com_sun_pisces_PiscesRenderer_fillRect() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_drawOval() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_drawOval) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1226,8 +1041,8 @@ Java_com_sun_pisces_PiscesRenderer_drawOval() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_drawOval(rdr, x, y, w, h);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1242,7 +1057,7 @@ Java_com_sun_pisces_PiscesRenderer_drawOval() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_fillOval() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_fillOval) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1259,8 +1074,8 @@ Java_com_sun_pisces_PiscesRenderer_fillOval() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_fillOval(rdr, x, y, w, h);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1275,7 +1090,7 @@ Java_com_sun_pisces_PiscesRenderer_fillOval() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_drawRoundRect() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_drawRoundRect) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1294,8 +1109,8 @@ Java_com_sun_pisces_PiscesRenderer_drawRoundRect() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_drawRoundRect(rdr, x, y, w, h, aw, ah);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1310,7 +1125,7 @@ Java_com_sun_pisces_PiscesRenderer_drawRoundRect() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_fillRoundRect() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_fillRoundRect) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1329,8 +1144,8 @@ Java_com_sun_pisces_PiscesRenderer_fillRoundRect() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_fillRoundRect(rdr, x, y, w, h, aw, ah);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1345,7 +1160,7 @@ Java_com_sun_pisces_PiscesRenderer_fillRoundRect() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_drawArc() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_drawArc) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1365,8 +1180,8 @@ Java_com_sun_pisces_PiscesRenderer_drawArc() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_drawArc(rdr, x, y, width, height, startAngle, arcAngle, arcType);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1381,7 +1196,7 @@ Java_com_sun_pisces_PiscesRenderer_drawArc() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_fillArc() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_fillArc) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(surfaceHandle);
@@ -1401,8 +1216,8 @@ Java_com_sun_pisces_PiscesRenderer_fillArc() {
     rdr = (Renderer*)JLongToPointer(KNI_GetLongField(objectHandle,
                                     fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, surfaceHandle);
+    SURFACE_FROM_RENDERER(_ee, surface, surfaceHandle, objectHandle);
+    ACQUIRE_SURFACE(_ee, surface, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_fillArc(rdr, x, y, width, height, startAngle, arcAngle, arcType);
     RELEASE_SURFACE(surface, surfaceHandle);
@@ -1417,7 +1232,7 @@ Java_com_sun_pisces_PiscesRenderer_fillArc() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_getBoundingBox() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_getBoundingBox) {
     KNI_StartHandles(2);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(bbox);
@@ -1440,7 +1255,7 @@ Java_com_sun_pisces_PiscesRenderer_getBoundingBox() {
 }
 
 KNIEXPORT KNI_RETURNTYPE_VOID
-Java_com_sun_pisces_PiscesRenderer_setPathData() {
+KNIDECL(com_sun_pisces_PiscesRendererMIDPImpl_setPathData) {
     KNI_StartHandles(3);
     KNI_DeclareHandle(objectHandle);
     KNI_DeclareHandle(dataHandle);
@@ -1474,7 +1289,7 @@ Java_com_sun_pisces_PiscesRenderer_setPathData() {
             case CMD_MOVE_TO:
                 x1 = toPiscesCoords(*data++);
                 y1 = toPiscesCoords(*data++);
-                
+
                 renderer_moveTo(rdr, x1, y1);
                 break;
             case CMD_LINE_TO:
@@ -1539,7 +1354,7 @@ renderer_finalize(jobject objectHandle) {
 }
 
 static jboolean
-initializeRendererFieldIds(jobject objectHandle) {
+initializeRendererFieldIds(CVMExecEnv* _ee, jobject objectHandle) {
     static const FieldDesc rendererFieldDesc[] = {
                 { "nativePtr", "J" },
                 { "surface", "Lcom/sun/pisces/AbstractSurface;" },
@@ -1559,7 +1374,7 @@ initializeRendererFieldIds(jobject objectHandle) {
 
     KNI_GetObjectClass(objectHandle, classHandle);
 
-    if (initializeFieldIds(fieldIds, classHandle, rendererFieldDesc)) {
+    if (initializeFieldIds(_ee, fieldIds, classHandle, rendererFieldDesc)) {
         retVal = KNI_TRUE;
         fieldIdsInitialized = KNI_TRUE;
     }
@@ -1571,12 +1386,12 @@ initializeRendererFieldIds(jobject objectHandle) {
 /**
  * Converts floating point number into S15.16 format
  * [= (int)(f * 65536.0f)]. Doesn't correctly handle INF, NaN and -0.
- * 
+ *
  * @param ff number encoded as sign [1 bit], exponent + 127 [8 bits], mantisa
- *           without the implicit 1 at the beginning [23 bits] 
+ *           without the implicit 1 at the beginning [23 bits]
  * @return ff in S15.16 format
- */ 
-static int 
+ */
+static int
 toPiscesCoords(unsigned int ff) {
     int shift;
     unsigned int gg;

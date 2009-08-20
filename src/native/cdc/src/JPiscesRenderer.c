@@ -1,25 +1,25 @@
-/*
- * Copyright  1990-2008 Sun Microsystems, Inc. All Rights Reserved.
+/* 
+ * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- *
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version
- * 2 only, as published by the Free Software Foundation.
- *
+ * 2 only, as published by the Free Software Foundation. 
+ * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
- * included at /legal/license.txt).
- *
+ * included at /legal/license.txt). 
+ * 
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA
- *
+ * 02110-1301 USA 
+ * 
  * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa
  * Clara, CA 95054 or visit www.sun.com if you need additional
- * information or have any questions.
+ * information or have any questions. 
  *
  */
 #include <JPiscesRenderer.h>
@@ -71,7 +71,7 @@ Java_com_sun_pisces_PiscesRenderer_staticInitialize(JNIEnv* env,
 }
 
 JNIEXPORT void JNICALL
-Java_com_sun_pisces_PiscesRenderer_initialize(JNIEnv* env,
+Java_com_sun_pisces_PiscesRenderer_initialize(JNIEnv* env, 
                                               jobject objectHandle) {
     Renderer* rdr;
     Surface* surface;
@@ -109,24 +109,33 @@ Java_com_sun_pisces_PiscesRenderer_nativeFinalize(JNIEnv* env,
 }
 
 JNIEXPORT void JNICALL
+Java_com_sun_pisces_PiscesRenderer_beginRendering__IIIII(JNIEnv* env,
+        jobject objectHandle, jint minX, jint minY, jint width, jint height,
+        jint windingRule) {
+    Renderer* rdr;
+    rdr = (Renderer*)JLongToPointer(
+              (*env)->GetLongField(env, objectHandle, 
+                                   fieldIds[RENDERER_NATIVE_PTR]));
+
+    renderer_beginRendering5(rdr, minX, minY, width, height, windingRule);
+
+    if (JNI_TRUE == readAndClearMemErrorFlag()) {
+        JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
+                     "Allocation of internal renderer buffer failed.");
+    }
+}
+
+//temporary copy of Java_com_sun_pisces_PiscesRenderer_beginRendering__IIIII
+JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_beginRenderingIIIII(JNIEnv* env,
         jobject objectHandle, jint minX, jint minY, jint width, jint height,
         jint windingRule) {
     Renderer* rdr;
-    Surface* surface;
-    jobject surfaceHandle;
-
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, env, surfaceHandle);
-    INVALIDATE_RENDERER_SURFACE(rdr);
-
     renderer_beginRendering5(rdr, minX, minY, width, height, windingRule);
-
-    RELEASE_SURFACE(surface, env, surfaceHandle);
 
     if (JNI_TRUE == readAndClearMemErrorFlag()) {
         JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
@@ -134,28 +143,42 @@ Java_com_sun_pisces_PiscesRenderer_beginRenderingIIIII(JNIEnv* env,
     }
 }
 
+
+
+JNIEXPORT void JNICALL
+Java_com_sun_pisces_PiscesRenderer_beginRendering__I(JNIEnv* env,
+        jobject objectHandle, jint windingRule) {
+    Renderer* rdr;
+    rdr = (Renderer*)JLongToPointer(
+              (*env)->GetLongField(env, objectHandle, 
+                                   fieldIds[RENDERER_NATIVE_PTR]));
+
+    renderer_beginRendering1(rdr, windingRule);
+
+    if (JNI_TRUE == readAndClearMemErrorFlag()) {
+        JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
+                     "Allocation of internal renderer buffer failed.");
+    }
+}
+
+//temporary copy of Java_com_sun_pisces_PiscesRenderer_beginRendering__I
 JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_beginRenderingI(JNIEnv* env,
         jobject objectHandle, jint windingRule) {
     Renderer* rdr;
-	Surface* surface;
-	jobject surfaceHandle;
-
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
-    SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
-    ACQUIRE_SURFACE(surface, env, surfaceHandle);
-    INVALIDATE_RENDERER_SURFACE(rdr);
     renderer_beginRendering1(rdr, windingRule);
-    RELEASE_SURFACE(surface, env, surfaceHandle);
 
     if (JNI_TRUE == readAndClearMemErrorFlag()) {
         JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
                      "Allocation of internal renderer buffer failed.");
     }
 }
+
+
 
 JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_endRendering(JNIEnv* env,
@@ -165,7 +188,7 @@ Java_com_sun_pisces_PiscesRenderer_endRendering(JNIEnv* env,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -185,7 +208,7 @@ Java_com_sun_pisces_PiscesRenderer_setClip(JNIEnv* env, jobject objectHandle,
         jint minX, jint minY, jint width, jint height) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setClip(rdr, minX, minY, width, height);
@@ -201,7 +224,7 @@ Java_com_sun_pisces_PiscesRenderer_resetClip(JNIEnv* env,
         jobject objectHandle) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_resetClip(rdr);
@@ -219,7 +242,7 @@ Java_com_sun_pisces_PiscesRenderer_setTransform(JNIEnv* env,
     Transform6 transform;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     transform_get6(&transform, env, transformHandle);
@@ -237,7 +260,7 @@ Java_com_sun_pisces_PiscesRenderer_getTransformImpl(JNIEnv* env,
 
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     transform_set6(env, transformHandle, renderer_getTransform(rdr));
@@ -249,16 +272,54 @@ Java_com_sun_pisces_PiscesRenderer_getTransformImpl(JNIEnv* env,
 }
 
 JNIEXPORT void JNICALL
-Java_com_sun_pisces_PiscesRenderer_setStrokeImpl(JNIEnv* env,
+Java_com_sun_pisces_PiscesRenderer_setStroke__IIII_3II(JNIEnv* env,
         jobject objectHandle, jint lineWidth, jint capStyle,
-        jint joinStyle, jint miterLimit, jintArray arrayHandle,
+        jint joinStyle, jint miterLimit, jintArray arrayHandle, 
         jint dashPhase) {
     jint* dashArray = NULL;
     jint dashArray_length = 0;
 
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
+                                   fieldIds[RENDERER_NATIVE_PTR]));
+
+    if (arrayHandle != NULL) {
+        jsize length = (*env)->GetArrayLength(env, arrayHandle);
+        dashArray = (jint*)PISCESmalloc(length * sizeof(jint));
+
+        //NOTE : dashArray is freed at finalization time by renderer_dispose()
+
+        if (NULL == dashArray) {
+            JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
+                       "Allocation of renderer memory for stroke data failed.");
+        } else {
+            (*env)->GetIntArrayRegion(env, arrayHandle, 0, length, dashArray);
+            dashArray_length = length;
+        }
+    }
+
+    renderer_setStroke6(rdr, lineWidth, capStyle, joinStyle, miterLimit,
+                        dashArray, dashArray_length, dashPhase);
+
+    if (JNI_TRUE == readAndClearMemErrorFlag()) {
+        JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
+                     "Allocation of internal renderer buffer failed.");
+    }
+}
+
+//temporary copy of Java_com_sun_pisces_PiscesRenderer_setStroke__IIII_3II
+JNIEXPORT void JNICALL
+Java_com_sun_pisces_PiscesRenderer_setStrokeImpl(JNIEnv* env,
+        jobject objectHandle, jint lineWidth, jint capStyle,
+        jint joinStyle, jint miterLimit, jintArray arrayHandle, 
+        jint dashPhase) {
+    jint* dashArray = NULL;
+    jint dashArray_length = 0;
+
+    Renderer* rdr;
+    rdr = (Renderer*)JLongToPointer(
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     if (arrayHandle != NULL) {
@@ -286,11 +347,11 @@ Java_com_sun_pisces_PiscesRenderer_setStrokeImpl(JNIEnv* env,
 }
 
 JNIEXPORT void JNICALL
-Java_com_sun_pisces_PiscesRenderer_setStrokeImplNoParam(JNIEnv* env,
+Java_com_sun_pisces_PiscesRenderer_setStroke__(JNIEnv* env,
         jobject objectHandle) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setStroke0(rdr);
@@ -301,11 +362,29 @@ Java_com_sun_pisces_PiscesRenderer_setStrokeImplNoParam(JNIEnv* env,
     }
 }
 
+//temporary copy of Java_com_sun_pisces_PiscesRenderer_setStroke__
+JNIEXPORT void JNICALL
+Java_com_sun_pisces_PiscesRenderer_setStrokeImplNoParam(JNIEnv* env,
+        jobject objectHandle) {
+    Renderer* rdr;
+    rdr = (Renderer*)JLongToPointer(
+              (*env)->GetLongField(env, objectHandle, 
+                                   fieldIds[RENDERER_NATIVE_PTR]));
+
+    renderer_setStroke0(rdr);
+
+    if (JNI_TRUE == readAndClearMemErrorFlag()) {
+        JNI_ThrowNew(env, "java/lang/OutOfMemoryError",
+                     "Allocation of internal renderer buffer failed.");
+    }
+}
+
+
 JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_setFill(JNIEnv* env, jobject objectHandle) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setFill(rdr);
@@ -321,7 +400,7 @@ Java_com_sun_pisces_PiscesRenderer_setColor(JNIEnv* env, jobject objectHandle,
         jint red, jint green, jint blue, jint alpha) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setColor(rdr, red, green, blue, alpha);
@@ -332,12 +411,12 @@ Java_com_sun_pisces_PiscesRenderer_setColor(JNIEnv* env, jobject objectHandle,
     }
 }
 JNIEXPORT void JNICALL
-Java_com_sun_pisces_PiscesRenderer_setCompositeRule(JNIEnv* env,
+Java_com_sun_pisces_PiscesRenderer_setCompositeRule(JNIEnv* env, 
                                                     jobject objectHandle,
                                                     jint compositeRule) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setCompositeRule(rdr, compositeRule);
@@ -348,13 +427,13 @@ Java_com_sun_pisces_PiscesRenderer_setCompositeRule(JNIEnv* env,
     }
 }
 JNIEXPORT void JNICALL
-Java_com_sun_pisces_PiscesRenderer_setComposite(JNIEnv* env,
+Java_com_sun_pisces_PiscesRenderer_setComposite(JNIEnv* env, 
                                                 jobject objectHandle,
-                                                jint compositeRule,
+                                                jint compositeRule, 
                                                 jfloat alpha) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setComposite(rdr, compositeRule, alpha);
@@ -375,7 +454,7 @@ Java_com_sun_pisces_PiscesRenderer_setTextureImpl(JNIEnv* env,
     Transform6 textureTransform;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     data = (jint*)PISCESmalloc((width + 2) * (height + 2) * sizeof(jint));
@@ -410,7 +489,7 @@ Java_com_sun_pisces_PiscesRenderer_setTextureImpl(JNIEnv* env,
         }
 
         for (; h2 > 0; --h2) {
-            (*env)->GetIntArrayRegion(env, arrayHandle, offset, width,
+            (*env)->GetIntArrayRegion(env, arrayHandle, offset, width, 
                                       dest + 1);
             dest[0] = dest[copyToFirstCol + 1];
             dest[width + 1] = dest[copyToLastCol + 1];
@@ -424,7 +503,7 @@ Java_com_sun_pisces_PiscesRenderer_setTextureImpl(JNIEnv* env,
                size + 2 * sizeof(jint));
 
         transform_get6(&textureTransform, env, transformHandle);
-        renderer_setTexture(rdr, data, width, height, repeat,
+        renderer_setTexture(rdr, data, width, height, repeat, 
                             &textureTransform);
 
         if (JNI_TRUE == readAndClearMemErrorFlag()) {
@@ -432,13 +511,6 @@ Java_com_sun_pisces_PiscesRenderer_setTextureImpl(JNIEnv* env,
                          "Allocation of internal renderer buffer failed.");
         }
     }
-}
-
-JNIEXPORT void JNICALL
-Java_com_sun_pisces_PiscesRenderer_setTextureFromImageImpl(JNIEnv* env,
-        jobject objectHandle, jint width, jint height, jint offset, jint stride,
-        jobject transformHandle) {
-	//NOT IMPLEMENTED
 }
 
 JNIEXPORT void JNICALL
@@ -509,7 +581,7 @@ Java_com_sun_pisces_PiscesRenderer_setAntialiasing(JNIEnv* env,
         jobject objectHandle, jboolean antialiasingOn) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_setAntialiasing(rdr, antialiasingOn);
@@ -527,7 +599,7 @@ Java_com_sun_pisces_PiscesRenderer_getAntialiasing(JNIEnv* env,
     Renderer* rdr;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     antialiasingOn = renderer_getAntialiasing(rdr);
@@ -545,7 +617,7 @@ Java_com_sun_pisces_PiscesRenderer_moveTo(JNIEnv* env, jobject objectHandle,
         jint x0, jint y0) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_moveTo(rdr, x0, y0);
@@ -560,7 +632,7 @@ JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_lineJoin(JNIEnv* env, jobject objectHandle) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_lineJoin(rdr);
@@ -576,7 +648,7 @@ Java_com_sun_pisces_PiscesRenderer_lineTo(JNIEnv* env, jobject objectHandle,
         jint x1, jint y1) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_lineTo(rdr, x1, y1);
@@ -592,7 +664,7 @@ Java_com_sun_pisces_PiscesRenderer_quadTo(JNIEnv* env, jobject objectHandle,
         jint x1, jint y1, jint x2, jint y2) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_quadTo(rdr, x1, y1, x2, y2);
@@ -608,7 +680,7 @@ Java_com_sun_pisces_PiscesRenderer_cubicTo(JNIEnv* env, jobject objectHandle,
         jint x1, jint y1, jint x2, jint y2, jint x3, jint y3) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_cubicTo(rdr, x1, y1, x2, y2, x3, y3);
@@ -623,7 +695,7 @@ JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_close(JNIEnv* env, jobject objectHandle) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_close(rdr);
@@ -638,7 +710,7 @@ JNIEXPORT void JNICALL
 Java_com_sun_pisces_PiscesRenderer_end(JNIEnv* env, jobject objectHandle) {
     Renderer* rdr;
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     renderer_end(rdr);
@@ -657,7 +729,7 @@ Java_com_sun_pisces_PiscesRenderer_clearRect(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -680,7 +752,7 @@ Java_com_sun_pisces_PiscesRenderer_drawLine(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -703,7 +775,7 @@ Java_com_sun_pisces_PiscesRenderer_drawRect(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -726,7 +798,7 @@ Java_com_sun_pisces_PiscesRenderer_fillRect(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
 
@@ -750,7 +822,7 @@ Java_com_sun_pisces_PiscesRenderer_drawOval(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -773,7 +845,7 @@ Java_com_sun_pisces_PiscesRenderer_fillOval(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -797,7 +869,7 @@ Java_com_sun_pisces_PiscesRenderer_drawRoundRect(JNIEnv* env,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -821,7 +893,7 @@ Java_com_sun_pisces_PiscesRenderer_fillRoundRect(JNIEnv* env,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -845,7 +917,7 @@ Java_com_sun_pisces_PiscesRenderer_drawArc(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
@@ -870,9 +942,9 @@ Java_com_sun_pisces_PiscesRenderer_fillArc(JNIEnv* env, jobject objectHandle,
     jobject surfaceHandle;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
-
+    
     SURFACE_FROM_RENDERER(surface, env, surfaceHandle, objectHandle);
     ACQUIRE_SURFACE(surface, env, surfaceHandle);
     INVALIDATE_RENDERER_SURFACE(rdr);
@@ -891,7 +963,7 @@ Java_com_sun_pisces_PiscesRenderer_getBoundingBox(JNIEnv* env,
     jint bb[4];
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     bb[0] = rdr->_bboxX0;
@@ -912,7 +984,7 @@ Java_com_sun_pisces_PiscesRenderer_setPathData(JNIEnv* env,
     jbyte* commands = NULL;
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     data = (jfloat*)(*env)->GetPrimitiveArrayCritical(env, dataHandle, NULL);
@@ -975,7 +1047,7 @@ Java_com_sun_pisces_PiscesRenderer_setPathData(JNIEnv* env,
 Renderer*
 renderer_get(JNIEnv* env, jobject objectHandle) {
     return (Renderer*)JLongToPointer(
-                (*env)->GetLongField(env, objectHandle,
+                (*env)->GetLongField(env, objectHandle, 
                                      fieldIds[RENDERER_NATIVE_PTR]));
 }
 
@@ -1015,7 +1087,7 @@ disposeNativeImpl(JNIEnv* env, jobject objectHandle) {
     }
 
     rdr = (Renderer*)JLongToPointer(
-              (*env)->GetLongField(env, objectHandle,
+              (*env)->GetLongField(env, objectHandle, 
                                    fieldIds[RENDERER_NATIVE_PTR]));
 
     if (rdr != NULL) {
